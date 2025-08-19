@@ -1,4 +1,4 @@
-import { 
+import {
   users, categories, products, orders, orderItems,
   type User, type UpsertUser, type Category, type InsertCategory,
   type Product, type InsertProduct, type Order, type InsertOrder,
@@ -6,41 +6,43 @@ import {
   type OrderWithItems
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, asc, and, sql } from "drizzle-orm";
+import { eq, desc, asc, and, sql, inArray } from "drizzle-orm";
 
+// ... (interface remains the same)
 export interface IStorage {
-  // User operations
-  getUser(id: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
-  
-  // Category operations
-  getCategories(): Promise<Category[]>;
-  createCategory(category: InsertCategory): Promise<Category>;
-  updateCategory(id: string, updates: Partial<InsertCategory>): Promise<Category | undefined>;
-  deleteCategory(id: string): Promise<boolean>;
-  
-  // Product operations
-  getProducts(): Promise<ProductWithCategory[]>;
-  getProductsByCategory(categoryId: string): Promise<ProductWithCategory[]>;
-  getProduct(id: string): Promise<ProductWithCategory | undefined>;
-  createProduct(product: InsertProduct): Promise<Product>;
-  updateProduct(id: string, updates: Partial<InsertProduct>): Promise<Product | undefined>;
-  updateProductStock(id: string, stock: number): Promise<Product | undefined>;
-  deleteProduct(id: string): Promise<boolean>;
-  
-  // Order operations
-  getOrders(): Promise<OrderWithItems[]>;
-  getUserOrders(userId: string): Promise<OrderWithItems[]>;
-  getOrder(id: string): Promise<OrderWithItems | undefined>;
-  createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
-  updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
-  updatePaymentStatus(id: string, status: string): Promise<Order | undefined>;
-}
+    // User operations
+    getUser(id: string): Promise<User | undefined>;
+    getUserByEmail(email: string): Promise<User | undefined>;
+    upsertUser(user: UpsertUser): Promise<User>;
+    
+    // Category operations
+    getCategories(): Promise<Category[]>;
+    createCategory(category: InsertCategory): Promise<Category>;
+    updateCategory(id: string, updates: Partial<InsertCategory>): Promise<Category | undefined>;
+    deleteCategory(id: string): Promise<boolean>;
+    
+    // Product operations
+    getProducts(): Promise<ProductWithCategory[]>;
+    getProductsByCategory(categoryId: string): Promise<ProductWithCategory[]>;
+    getProduct(id: string): Promise<ProductWithCategory | undefined>;
+    createProduct(product: InsertProduct): Promise<Product>;
+    updateProduct(id: string, updates: Partial<InsertProduct>): Promise<Product | undefined>;
+    updateProductStock(id: string, stock: number): Promise<Product | undefined>;
+    deleteProduct(id: string): Promise<boolean>;
+    
+    // Order operations
+    getOrders(): Promise<OrderWithItems[]>;
+    getUserOrders(userId: string): Promise<OrderWithItems[]>;
+    getOrder(id: string): Promise<OrderWithItems | undefined>;
+    createOrder(order: InsertOrder, items: InsertOrderItem[]): Promise<Order>;
+    updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+    updatePaymentStatus(id: string, status: string): Promise<Order | undefined>;
+  }
 
 export class DatabaseStorage implements IStorage {
-  // User operations
-  async getUser(id: string): Promise<User | undefined> {
+  // ... (user, category, and product methods remain the same)
+   // User operations
+   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
@@ -163,38 +165,42 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  // Order operations
+  // CORRECTED getOrders function
   async getOrders(): Promise<OrderWithItems[]> {
-    const result = await db
+    const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+    if (allOrders.length === 0) return [];
+
+    const orderIds = allOrders.map(o => o.id);
+    const items = await db
       .select()
-      .from(orders)
-      .leftJoin(orderItems, eq(orders.id, orderItems.orderId))
+      .from(orderItems)
       .leftJoin(products, eq(orderItems.productId, products.id))
-      .orderBy(desc(orders.createdAt));
-    
-    const ordersMap = new Map<string, OrderWithItems>();
-    
-    for (const row of result) {
-      if (!ordersMap.has(row.orders.id)) {
-        ordersMap.set(row.orders.id, {
-          ...row.orders,
-          orderItems: [],
-          user: {} as any, // Will be populated if needed
-          status: row.orders.orderStatus // Add backward compatibility alias
-        } as OrderWithItems);
-      }
-      
-      if (row.order_items && row.products) {
-        ordersMap.get(row.orders.id)!.orderItems.push({
-          ...row.order_items,
-          product: row.products
-        });
+      .where(inArray(orderItems.orderId, orderIds));
+
+    const userIds = allOrders.map(o => o.userId);
+    const orderUsers = await db.select().from(users).where(inArray(users.id, userIds));
+    const usersMap = new Map(orderUsers.map(u => [u.id, u]));
+
+    const itemsMap = new Map<string, (OrderItem & { product: Product })[]>();
+    for (const item of items) {
+      if (item.order_items && item.products) {
+        const orderId = item.order_items.orderId;
+        if (!itemsMap.has(orderId)) {
+          itemsMap.set(orderId, []);
+        }
+        itemsMap.get(orderId)!.push({ ...item.order_items, product: item.products });
       }
     }
-    
-    return Array.from(ordersMap.values());
+
+    return allOrders.map(order => ({
+      ...order,
+      orderItems: itemsMap.get(order.id) || [],
+      user: usersMap.get(order.userId)!,
+      status: order.orderStatus, // alias for backward compatibility
+    }));
   }
 
+  // ... (rest of the methods remain the same)
   async getUserOrders(userId: string): Promise<OrderWithItems[]> {
     const result = await db
       .select()
@@ -263,40 +269,3 @@ export class DatabaseStorage implements IStorage {
       ...item,
       orderId: order.id
     }));
-    
-    await db.insert(orderItems).values(orderItemsData);
-    
-    // Update product stock
-    for (const item of items) {
-      await db
-        .update(products)
-        .set({ 
-          stock: sql`${products.stock} - ${item.quantity}`,
-          updatedAt: new Date()
-        })
-        .where(eq(products.id, item.productId));
-    }
-    
-    return order;
-  }
-
-  async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
-    const [order] = await db
-      .update(orders)
-      .set({ orderStatus: status, updatedAt: new Date() })
-      .where(eq(orders.id, id))
-      .returning();
-    return order;
-  }
-
-  async updatePaymentStatus(id: string, status: string): Promise<Order | undefined> {
-    const [order] = await db
-      .update(orders)
-      .set({ paymentStatus: status, updatedAt: new Date() })
-      .where(eq(orders.id, id))
-      .returning();
-    return order;
-  }
-}
-
-export const storage = new DatabaseStorage();
