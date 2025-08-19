@@ -12,4 +12,6 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+
+// This is the critical change: We pass the schema with relations to Drizzle.
+export const db = drizzle(pool, { schema });

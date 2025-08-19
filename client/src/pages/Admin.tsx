@@ -31,9 +31,7 @@ export default function Admin() {
       setProductFormOpen(false);
       setEditingProduct(null);
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
   };
 
   const createProductMutation = useMutation({
@@ -46,8 +44,7 @@ export default function Admin() {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<InsertProduct> }) =>
-      apiRequest("PUT", `/api/admin/products/${id}`, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<InsertProduct> }) => apiRequest("PUT", `/api/admin/products/${id}`, data),
     ...productMutationOptions,
     onSuccess: () => {
       productMutationOptions.onSuccess();
@@ -56,15 +53,12 @@ export default function Admin() {
   });
 
   const updateOrderStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiRequest("PUT", `/api/admin/orders/${id}/status`, { status }),
+    mutationFn: ({ id, status }: { id: string; status: string }) => apiRequest("PUT", `/api/admin/orders/${id}/status`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       toast({ title: "Success", description: "Order status updated." });
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: "Failed to update order status.", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Error", description: "Failed to update order status.", variant: "destructive" }),
   });
 
   const handleProductSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -93,9 +87,9 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-charcoal mb-8">Admin Dashboard</h1>
           <div className="border-b">
-            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-              <button onClick={() => setActiveTab("products")} className={`${activeTab === 'products' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Products</button>
-              <button onClick={() => setActiveTab("orders")} className={`${activeTab === 'orders' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Orders</button>
+            <nav className="-mb-px flex space-x-8">
+              <button onClick={() => setActiveTab("products")} className={`${activeTab === 'products' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Products</button>
+              <button onClick={() => setActiveTab("orders")} className={`${activeTab === 'orders' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>Orders</button>
             </nav>
           </div>
           <div className="mt-6">
@@ -124,31 +118,17 @@ export default function Admin() {
                 </div>
                 <Card>
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Stock</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Price</TableHead><TableHead>Stock</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {productsLoading ? (
-                        <TableRow><TableCell colSpan={5} className="text-center">Loading...</TableCell></TableRow>
-                      ) : (
-                        products.map(product => (
-                          <TableRow key={product.id}>
-                            <TableCell>{product.name}</TableCell>
-                            <TableCell>{categories.find(c => c.id === product.categoryId)?.name}</TableCell>
-                            <TableCell>₹{product.price}</TableCell>
-                            <TableCell>{product.stock}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="outline" size="sm" onClick={() => { setEditingProduct(product); setProductFormOpen(true); }}>Edit</Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
+                      {productsLoading ? <TableRow><TableCell colSpan={5} className="text-center">Loading...</TableCell></TableRow> : products.map(product => (
+                        <TableRow key={product.id}>
+                          <TableCell>{product.name}</TableCell>
+                          <TableCell>{categories.find(c => c.id === product.categoryId)?.name}</TableCell>
+                          <TableCell>₹{product.price}</TableCell>
+                          <TableCell>{product.stock}</TableCell>
+                          <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => { setEditingProduct(product); setProductFormOpen(true); }}>Edit</Button></TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </Card>
