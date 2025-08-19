@@ -53,6 +53,10 @@ export class DatabaseStorage {
     const [product] = await db.update(products).set({ ...updates, updatedAt: new Date() }).where(eq(products.id, id)).returning();
     return product;
   }
+  async deleteProduct(id: string): Promise<boolean> {
+    const updated = await db.update(products).set({ isActive: false }).where(eq(products.id, id)).returning({ id: products.id });
+    return updated.length > 0;
+  }
 
   // ORDER METHODS
   async getOrders(): Promise<OrderWithItems[]> {
@@ -64,6 +68,23 @@ export class DatabaseStorage {
       orderBy: [desc(orders.createdAt)],
     });
     return allOrders.map(order => ({ ...order, status: order.orderStatus }));
+  }
+
+  // CORRECTED USER ORDERS METHOD
+  async getUserOrders(userId: string): Promise<OrderWithItems[]> {
+    const userOrders = await db.query.orders.findMany({
+      where: eq(orders.userId, userId),
+      with: {
+        user: true,
+        orderItems: {
+          with: {
+            product: true,
+          },
+        },
+      },
+      orderBy: [desc(orders.createdAt)],
+    });
+    return userOrders.map(order => ({ ...order, status: order.orderStatus }));
   }
 
   async createOrder(orderData: InsertOrder, items: Omit<InsertOrderItem, 'orderId'>[]): Promise<Order> {
