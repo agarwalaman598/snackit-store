@@ -1,9 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCart } from "@/lib/cart";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import ProductCard from "@/components/ProductCard";
 import type { ProductWithCategory } from "@shared/schema";
-import ProductCard from "@/components/ProductCard"; // Assuming you have this component
 
 interface ProductGridProps {
   selectedCategory: string;
@@ -11,22 +8,15 @@ interface ProductGridProps {
 }
 
 export default function ProductGrid({ selectedCategory, searchQuery }: ProductGridProps) {
+  // Always fetch all products using a single, consistent query key.
   const { data: products = [], isLoading } = useQuery<ProductWithCategory[]>({
-    // Corrected queryKey to be consistent
     queryKey: ["/api/products"],
-    queryFn: async () => {
-      const response = await fetch("/api/products");
-      if (!response.ok) {
-        throw new Error("Failed to fetch products");
-      }
-      return response.json();
-    },
   });
 
-  // Filter products based on category and search query
+  // Perform all filtering on the client side.
   const filteredProducts = products.filter(product => {
     const categoryMatch = selectedCategory === "all" || product.categoryId === selectedCategory;
-    const searchMatch =
+    const searchMatch = searchQuery.trim() === '' ||
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description?.toLowerCase().includes(searchQuery.toLowerCase());
     return categoryMatch && searchMatch;
@@ -52,7 +42,10 @@ export default function ProductGrid({ selectedCategory, searchQuery }: ProductGr
   if (filteredProducts.length === 0) {
     return (
       <div className="text-center py-12" data-testid="no-products">
-        <p className="text-gray-500">No products found for this category.</p>
+        <div className="w-16 h-16 bg-gray-light rounded-full flex items-center justify-center mx-auto mb-4">
+          <i className="fas fa-search text-gray-400 text-2xl"></i>
+        </div>
+        <p className="text-gray-500">No products found.</p>
       </div>
     );
   }

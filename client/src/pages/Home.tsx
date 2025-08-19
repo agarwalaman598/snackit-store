@@ -21,6 +21,7 @@ export default function Home() {
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
+      setCartOpen(false);
       setLoginModalOpen(true);
     } else {
       setCartOpen(false);
@@ -29,7 +30,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-light">
       <Header
         cartItemCount={totalItems}
         onCartClick={() => setCartOpen(true)}
@@ -40,17 +41,11 @@ export default function Home() {
 
       <section className="bg-gradient-to-r from-primary to-coral text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2
-            className="text-3xl md:text-4xl font-bold mb-4"
-            data-testid="hero-title"
-          >
-            Instant Snacks to Your Hostel!
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Snacks Delivered to Your Door
           </h2>
-          <p
-            className="text-lg md:text-xl opacity-90 mb-6"
-            data-testid="hero-subtitle"
-          >
-            Fastest delivery on campus • Fresh snacks • 24/7 service
+          <p className="text-lg md:text-xl opacity-90">
+            Fastest delivery on campus • Fresh snacks • Always open
           </p>
         </div>
       </section>
@@ -87,19 +82,6 @@ export default function Home() {
         isOpen={loginModalOpen}
         onClose={() => setLoginModalOpen(false)}
       />
-
-      <button
-        onClick={() => setCartOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-40 lg:hidden hover:bg-primary-dark transition-all duration-200 transform hover:scale-110"
-        data-testid="floating-cart-button"
-      >
-        <i className="fas fa-shopping-cart text-xl"></i>
-        {totalItems > 0 && (
-          <span className="absolute -top-2 -right-2 bg-coral text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-medium">
-            {totalItems}
-          </span>
-        )}
-      </button>
     </div>
   );
 }
