@@ -19,25 +19,25 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md text-center" data-testid="success-modal">
         <div className="space-y-6">
-          <div className="w-20 h-20 bg-success rounded-full flex items-center justify-center mx-auto animate-bounce">
-            <i className="fas fa-check text-white text-3xl"></i>
+          <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto animate-bounce shadow-lg">
+            <i className="fas fa-check text-white text-4xl"></i>
           </div>
           
           <div>
-            <h2 className="text-2xl font-bold text-charcoal mb-4">Order Placed Successfully!</h2>
-            <p className="text-gray-600 mb-6">
-              Your delicious snacks will be delivered to your hostel in 10-15 minutes.
+            <h2 className="text-3xl font-black text-gray-900 mb-4">Order Placed Successfully!</h2>
+            <p className="text-gray-600 mb-6 text-lg">
+              Your delicious snacks will be delivered in 10-15 minutes.
             </p>
           </div>
           
-          <div className="bg-gray-light p-4 rounded-lg">
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
             <p className="text-sm text-gray-600">Estimated Delivery Time:</p>
-            <p className="font-bold text-charcoal">10-15 minutes</p>
+            <p className="font-black text-xl text-orange-600">10-15 minutes</p>
           </div>
           
           <Button 
             onClick={onClose} 
-            className="w-full bg-primary text-white hover:bg-primary-dark"
+            className="w-full btn-primary text-lg py-4"
             data-testid="continue-shopping-button"
           >
             Continue Shopping

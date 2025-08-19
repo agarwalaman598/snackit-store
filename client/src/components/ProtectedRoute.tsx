@@ -1,6 +1,8 @@
 import { useEffect } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,6 +12,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -19,7 +22,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        setLocation("/");
       }, 1000);
     }
     
@@ -30,15 +33,15 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/";
+        setLocation("/");
       }, 1000);
     }
-  }, [isAuthenticated, isLoading, user, requireAdmin, toast]);
+  }, [isAuthenticated, isLoading, user, requireAdmin, toast, setLocation]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <LoadingSpinner size="lg" text="Loading..." />
       </div>
     );
   }
@@ -46,10 +49,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   if (!isAuthenticated || (requireAdmin && !user?.isAdmin)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-charcoal">Redirecting...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Redirecting..." />
       </div>
     );
   }

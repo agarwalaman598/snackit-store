@@ -10,6 +10,9 @@ const app = express();
 
 const corsOptions = {
   origin: [
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://localhost:5001',
     'http://localhost:5000',
     // Remember to add your production frontend URL here when you have it
   ],
@@ -29,10 +32,10 @@ app.use(express.urlencoded({ extended: false }));
     serveStatic(app);
   }
 
-  const port = parseInt(process.env.PORT || '5000', 10);
+  const port = parseInt(process.env.PORT || '3000', 10);
   server.listen({
     port,
-    host: "0.0.0.0",
+    host: "localhost",
   }, () => {
     console.log(`serving on port ${port}`);
   });

@@ -56,7 +56,11 @@ export async function setupAuth(app: Express) {
           
           // Check if email is from KIIT domain
           if (!email || !email.endsWith('@kiit.ac.in')) {
-            return done(new Error('Only @kiit.ac.in emails are allowed'), undefined);
+            // Instead of throwing an error, redirect to domain error page
+            return done(null, false, { 
+              message: 'domain_restricted',
+              email: email 
+            });
           }
 
           // Upsert user in database
@@ -94,9 +98,28 @@ export async function setupAuth(app: Express) {
   }));
 
   app.get('/api/auth/google/callback', 
-    passport.authenticate('google', { failureRedirect: '/?error=auth_failed' }),
-    (req, res) => {
-      res.redirect('/');
+    (req, res, next) => {
+      passport.authenticate('google', (err: any, user: any, info: any) => {
+        if (err) {
+          return res.redirect('/domain-error');
+        }
+        
+        if (!user) {
+          // Check if it's a domain restriction
+          if (info && info.message === 'domain_restricted') {
+            return res.redirect('/domain-error');
+          }
+          return res.redirect('/domain-error');
+        }
+        
+        // Successful authentication
+        req.logIn(user, (err) => {
+          if (err) {
+            return res.redirect('/domain-error');
+          }
+          res.redirect('/');
+        });
+      })(req, res, next);
     }
   );
 

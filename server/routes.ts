@@ -27,6 +27,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Authenticated User Routes ---
+  app.get('/api/orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const orders = await storage.getUserOrders(userId);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
   app.post('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
       // ... (order creation logic remains the same)

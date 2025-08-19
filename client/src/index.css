@@ -1,36 +1,51 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 98%);
-  --foreground: hsl(210, 25%, 7.8431%);
-  --card: hsl(180, 6.6667%, 97.0588%);
-  --card-foreground: hsl(210, 25%, 7.8431%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(210, 25%, 7.8431%);
-  --primary: hsl(14, 100%, 60%);
-  --primary-dark: hsl(14, 85%, 50%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(210, 25%, 7.8431%);
-  --secondary-foreground: hsl(0, 0%, 100%);
-  --muted: hsl(240, 1.9608%, 90%);
-  --muted-foreground: hsl(210, 25%, 7.8431%);
-  --accent: hsl(211.5789, 51.3514%, 92.7451%);
-  --accent-foreground: hsl(203.8863, 88.2845%, 53.1373%);
-  --destructive: hsl(356.3033, 90.5579%, 54.3137%);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --border: hsl(201.4286, 30.4348%, 90.9804%);
-  --input: hsl(200, 23.0769%, 97.4510%);
-  --ring: hsl(14, 100%, 60%);
-  --radius: 1.3rem;
-  --success: hsl(160, 84%, 39%);
-  --success-dark: hsl(158, 64%, 25%);
-  --warning: hsl(46, 100%, 64%);
-  --coral: hsl(14, 100%, 70%);
-  --charcoal: hsl(210, 25%, 26%);
-  --gray-light: hsl(210, 20%, 96%);
+  /* Modern Quick Commerce Color Palette */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  
+  /* Primary Colors - Orange/Red Theme */
+  --primary: #f97316;
+  --primary-dark: #ea580c;
+  --primary-foreground: #ffffff;
+  
+  /* Secondary Colors */
+  --secondary: #64748b;
+  --secondary-foreground: #ffffff;
+  
+  /* Accent Colors */
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  
+  /* Muted Colors */
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  
+  /* Border & Input */
+  --border: #e2e8f0;
+  --input: #f8fafc;
+  --ring: #f97316;
+  
+  /* Success & Warning */
+  --success: #10b981;
+  --success-dark: #059669;
+  --warning: #f59e0b;
+  
+  /* Text Colors */
+  --charcoal: #1e293b;
+  --gray-light: #f8fafc;
+  
+  /* Radius */
+  --radius: 1rem;
 }
 
 @layer base {
@@ -40,5 +55,24 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105;
+  }
+  
+  .card-modern {
+    @apply bg-white rounded-2xl shadow-lg hover:shadow-xl border border-gray-100 transition-all duration-300 hover:scale-105;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent;
   }
 }

@@ -109,35 +109,33 @@ export default function CheckoutModal({
 
         {step === "details" ? (
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-2">Order Summary</h3>
-              <div className="space-y-1 text-sm">
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl">
+              <h3 className="font-bold text-lg text-gray-900 mb-3">Order Summary</h3>
+              <div className="space-y-2 text-sm">
                 {items.map((item) => (
-                  <div key={item.id} className="flex justify-between">
-                    <span>
-                      {item.name} × {item.quantity}
-                    </span>
-                    <span>₹{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                  <div key={item.id} className="flex justify-between items-center">
+                    <span className="text-gray-700">{item.name} × {item.quantity}</span>
+                    <span className="font-semibold text-orange-600">₹{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
-              <div className="border-t mt-2 pt-2 flex justify-between font-bold">
-                <span>Total:</span>
-                <span className="text-primary">₹{totalAmount}</span>
+              <div className="border-t border-orange-200 mt-3 pt-3 flex justify-between font-bold text-lg">
+                <span className="text-gray-900">Total:</span>
+                <span className="text-orange-600">₹{totalAmount}</span>
               </div>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Delivery Information</h3>
+              <h3 className="font-bold text-lg text-gray-900 mb-3">Delivery Information</h3>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="hostelBlock">Hostel Block</Label>
+                  <Label htmlFor="hostelBlock" className="text-gray-700 font-medium">Hostel Block</Label>
                   <Select
                     value={formData.hostelBlock}
                     onValueChange={(value) => setFormData({ ...formData, hostelBlock: value })}
                     required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-gray-200 focus:border-orange-500 focus:ring-orange-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -146,23 +144,25 @@ export default function CheckoutModal({
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="roomNumber">Room Number *</Label>
+                  <Label htmlFor="roomNumber" className="text-gray-700 font-medium">Room Number *</Label>
                   <Input
                     id="roomNumber"
                     value={formData.roomNumber}
                     onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
                     placeholder="e.g., 201"
+                    className="border-gray-200 focus:border-orange-500 focus:ring-orange-500"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phoneNumber">Phone Number *</Label>
+                  <Label htmlFor="phoneNumber" className="text-gray-700 font-medium">Phone Number *</Label>
                   <Input
                     id="phoneNumber"
                     type="tel"
                     value={formData.phoneNumber}
                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                     placeholder="Your mobile number"
+                    className="border-gray-200 focus:border-orange-500 focus:ring-orange-500"
                     required
                   />
                 </div>
@@ -170,8 +170,31 @@ export default function CheckoutModal({
             </div>
 
             <div>
-              <h3 className="font-semibold mb-2">Payment Method</h3>
-              {/* Payment method selection... */}
+              <h3 className="font-bold text-lg text-gray-900 mb-3">Payment Method</h3>
+              <div className="space-y-3">
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="cash"
+                    checked={formData.paymentMethod === "cash"}
+                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                    className="text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-gray-700">Cash on Delivery</span>
+                </label>
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="upi"
+                    checked={formData.paymentMethod === "upi"}
+                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                    className="text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-gray-700">UPI Payment</span>
+                </label>
+              </div>
             </div>
 
             <div className="flex space-x-4">
@@ -180,10 +203,11 @@ export default function CheckoutModal({
                 variant="outline"
                 onClick={onClose}
                 disabled={createOrderMutation.isPending}
+                className="border-gray-200 text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createOrderMutation.isPending}>
+              <Button type="submit" disabled={createOrderMutation.isPending} className="btn-primary">
                 {formData.paymentMethod === "upi"
                   ? "Continue to Payment"
                   : "Place Order"}
@@ -193,18 +217,18 @@ export default function CheckoutModal({
         ) : (
           <div className="text-center space-y-6">
             <div>
-              <h3 className="text-xl font-semibold mb-4">UPI Payment</h3>
-              <div className="bg-gray-light p-4 rounded-lg">
-                <div className="w-40 h-40 bg-white mx-auto rounded-lg flex items-center justify-center mb-4 p-2">
+              <h3 className="text-2xl font-black text-gray-900 mb-4">UPI Payment</h3>
+              <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-xl">
+                <div className="w-40 h-40 bg-white mx-auto rounded-xl flex items-center justify-center mb-4 p-2 shadow-lg">
                   <img
-                    src="/my-qr-code.png" // Make sure you've added your QR code here
+                    src="/my_qr.jpg"
                     alt="UPI QR Code"
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <p className="font-bold text-lg">₹{totalAmount}</p>
+                <p className="font-black text-2xl text-orange-600">₹{totalAmount}</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  UPI ID: your-upi-id@oksbi
+                  UPI ID: agarwalaman598@slc
                 </p>
               </div>
             </div>
@@ -213,13 +237,14 @@ export default function CheckoutModal({
                 onClick={() => setStep("details")}
                 variant="outline"
                 disabled={createOrderMutation.isPending}
+                className="border-gray-200 text-gray-700 hover:bg-gray-50"
               >
                 Back
               </Button>
               <Button
                 onClick={placeOrder}
                 disabled={createOrderMutation.isPending}
-                className="bg-success text-white hover:bg-success-dark"
+                className="btn-primary"
               >
                 {createOrderMutation.isPending ? "Processing..." : "Payment Done"}
               </Button>

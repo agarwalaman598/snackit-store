@@ -8,6 +8,8 @@ interface LoginModalProps {
 
 export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const handleGoogleLogin = () => {
+    // Clear any previous errors
+    window.history.replaceState({}, document.title, window.location.pathname);
     window.location.href = "/api/auth/google";
   };
 
@@ -15,18 +17,18 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md text-center" data-testid="login-modal">
         <div className="space-y-6">
-          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto">
             <i className="fas fa-user text-white text-2xl"></i>
           </div>
           
           <div>
-            <h2 className="text-2xl font-bold text-charcoal mb-2">Welcome to KIIT Snack Store</h2>
-            <p className="text-gray-600 mb-6">Sign in with your KIIT email to continue</p>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome to SnackIT</h2>
+            <p className="text-gray-600 mb-6">Your midnight snack companion</p>
           </div>
           
           <Button 
             onClick={handleGoogleLogin}
-            className="w-full bg-white border-2 border-gray-200 text-charcoal hover:border-primary transition-colors duration-200"
+            className="w-full btn-primary"
             data-testid="google-signin-button"
           >
             <img 
@@ -37,7 +39,16 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
             Continue with Google
           </Button>
           
-          <p className="text-xs text-gray-500">Only @kiit.ac.in emails are allowed</p>
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
+            <p className="text-sm text-gray-700 font-medium mb-2">
+              <i className="fas fa-info-circle text-orange-500 mr-2"></i>
+              Important Notice
+            </p>
+            <p className="text-xs text-gray-600">
+              Only <strong>@kiit.ac.in</strong> email addresses are allowed. 
+              This ensures fast delivery to your hostel location.
+            </p>
+          </div>
           
           <Button 
             onClick={onClose} 
