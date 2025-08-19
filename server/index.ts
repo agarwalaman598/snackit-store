@@ -35,7 +35,7 @@ app.use(express.urlencoded({ extended: false }));
   const port = parseInt(process.env.PORT || '3000', 10);
   server.listen({
     port,
-    host: "localhost",
+    host: "0.0.0.0",
   }, () => {
     console.log(`serving on port ${port}`);
   });
