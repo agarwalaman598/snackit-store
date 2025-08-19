@@ -1,0 +1,1475 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIIT Hostel Snack Store - Quick Commerce</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF6B47',
+                        secondary: '#2ECC71',
+                        accent: '#F39C12',
+                        'bg-light': '#FAFAFA',
+                        'text-dark': '#2C3E50',
+                        'text-gray': '#7F8C8D'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif']
+                    },
+                    animation: {
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'scale-in': 'scaleIn 0.2s ease-out',
+                        'success-tick': 'successTick 0.8s ease-out'
+                    },
+                    keyframes: {
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.3)', opacity: '0' },
+                            '50%': { transform: 'scale(1.05)' },
+                            '70%': { transform: 'scale(0.9)' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(100%)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.8)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        },
+                        successTick: {
+                            '0%': { transform: 'scale(0)', opacity: '0' },
+                            '50%': { transform: 'scale(1.2)', opacity: '1' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #FF6B47 0%, #F39C12 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.2s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .stock-badge {
+            background: linear-gradient(45deg, #2ECC71, #27AE60);
+        }
+        
+        .low-stock {
+            background: linear-gradient(45deg, #E74C3C, #C0392B);
+        }
+        
+        .cart-pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-bg-light font-sans">
+    
+    <!-- @COMPONENT: Header [navigation, auth, cart] -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center">
+                        <i class="fas fa-store text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-text-dark">SnackHub</h1>
+                        <p class="text-xs text-text-gray">KIIT Hostel Store</p>
+                    </div>
+                </div>
+
+                <!-- Search Bar (Desktop) -->
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                    <div class="relative w-full">
+                        <input type="text" placeholder="Search snacks, beverages..." 
+                               class="w-full px-4 py-2 pl-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <i class="fas fa-search absolute left-3 top-3 text-text-gray"></i>
+                    </div>
+                </div>
+
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <!-- Login Button -->
+                    <button id="loginBtn" class="hidden md:flex items-center space-x-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-all duration-200">
+                        <i class="fab fa-google"></i>
+                        <span>Sign In</span>
+                    </button>
+
+                    <!-- User Profile (Hidden by default) -->
+                    <div id="userProfile" class="hidden items-center space-x-3">
+                        <!-- Profile photo placeholder -->
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&w=40&h=40&fit=crop&crop=face" 
+                             alt="User Profile" class="w-8 h-8 rounded-full">
+                        <span class="text-sm font-medium text-text-dark" data-bind="user.name">John Doe</span>
+                    </div>
+
+                    <!-- Cart Button -->
+                    <button id="cartBtn" class="relative p-2 bg-primary text-white rounded-lg hover:bg-opacity-90 transition-all duration-200 cart-pulse">
+                        <i class="fas fa-shopping-cart text-lg"></i>
+                        <span id="cartCount" class="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium" data-bind="cart.itemCount">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Search -->
+        <div class="md:hidden px-4 pb-3">
+            <div class="relative">
+                <input type="text" placeholder="Search snacks, beverages..." 
+                       class="w-full px-4 py-2 pl-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                <i class="fas fa-search absolute left-3 top-3 text-text-gray"></i>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <!-- @COMPONENT: CategoryTabs [quick navigation] -->
+    <section class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-6 py-4 overflow-x-auto">
+                <button class="category-tab active flex items-center space-x-2 px-4 py-2 rounded-full bg-primary text-white transition-all duration-200" data-category="all">
+                    <i class="fas fa-th"></i>
+                    <span>All Items</span>
+                </button>
+                <button class="category-tab flex items-center space-x-2 px-4 py-2 rounded-full text-text-gray hover:bg-gray-100 transition-all duration-200" data-category="snacks">
+                    <i class="fas fa-cookie-bite"></i>
+                    <span>Snacks</span>
+                </button>
+                <button class="category-tab flex items-center space-x-2 px-4 py-2 rounded-full text-text-gray hover:bg-gray-100 transition-all duration-200" data-category="beverages">
+                    <i class="fas fa-coffee"></i>
+                    <span>Beverages</span>
+                </button>
+                <button class="category-tab flex items-center space-x-2 px-4 py-2 rounded-full text-text-gray hover:bg-gray-100 transition-all duration-200" data-category="instant">
+                    <i class="fas fa-fire"></i>
+                    <span>Instant Food</span>
+                </button>
+                <button class="category-tab flex items-center space-x-2 px-4 py-2 rounded-full text-text-gray hover:bg-gray-100 transition-all duration-200" data-category="dairy">
+                    <i class="fas fa-glass-milk"></i>
+                    <span>Dairy</span>
+                </button>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: CategoryTabs -->
+
+    <!-- @COMPONENT: ProductGrid [main product showcase] -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- @MAP: products.map(product => ( -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            
+            <!-- Product Card 1 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="snacks">
+                <!-- Maggi noodles packet -->
+                <img src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Maggi Noodles" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Maggi Noodles</h3>
+                        <span class="stock-badge text-white text-xs px-2 py-1 rounded-full">23 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Masala Flavor - 70g</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹15</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="maggi" data-price="15" data-name="Maggi Noodles">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 2 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="beverages">
+                <!-- Coca cola bottle -->
+                <img src="https://images.unsplash.com/photo-1554866585-cd94860890b7?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Coca Cola" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Coca Cola</h3>
+                        <span class="stock-badge text-white text-xs px-2 py-1 rounded-full">45 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Cold Drink - 250ml</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹20</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="coke" data-price="20" data-name="Coca Cola">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 3 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="snacks">
+                <!-- Chips packet -->
+                <img src="https://images.unsplash.com/photo-1566478989037-eec170784d0b?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Potato Chips" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Lay's Chips</h3>
+                        <span class="low-stock text-white text-xs px-2 py-1 rounded-full">3 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Classic Salted - 52g</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹10</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="chips" data-price="10" data-name="Lay's Chips">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 4 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="beverages">
+                <!-- Coffee cup -->
+                <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Coffee" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Black Coffee</h3>
+                        <span class="stock-badge text-white text-xs px-2 py-1 rounded-full">12 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Hot Beverage</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹25</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="coffee" data-price="25" data-name="Black Coffee">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 5 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="instant">
+                <!-- Cup noodles -->
+                <img src="https://images.unsplash.com/photo-1612927601601-6638404737ce?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Cup Noodles" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Cup Noodles</h3>
+                        <span class="stock-badge text-white text-xs px-2 py-1 rounded-full">18 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Chicken Flavor - 75g</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹35</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="cupnoodles" data-price="35" data-name="Cup Noodles">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 6 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="dairy">
+                <!-- Milk carton -->
+                <img src="https://images.unsplash.com/photo-1563636619-e9143da7973b?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Milk" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Fresh Milk</h3>
+                        <span class="stock-badge text-white text-xs px-2 py-1 rounded-full">8 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Full Cream - 500ml</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹30</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="milk" data-price="30" data-name="Fresh Milk">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 7 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="snacks">
+                <!-- Biscuits package -->
+                <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Biscuits" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Oreo Biscuits</h3>
+                        <span class="stock-badge text-white text-xs px-2 py-1 rounded-full">15 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Chocolate Cream - 120g</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹40</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="oreo" data-price="40" data-name="Oreo Biscuits">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 8 -->
+            <div class="product-card bg-white rounded-xl shadow-sm card-hover p-4" data-category="beverages">
+                <!-- Energy drink -->
+                <img src="https://images.unsplash.com/photo-1570831739435-6601aa3fa4fb?ixlib=rb-4.0.3&w=300&h=300&fit=crop" 
+                     alt="Energy Drink" class="w-full h-32 md:h-40 object-cover rounded-lg mb-3">
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-text-dark text-sm md:text-base">Red Bull</h3>
+                        <span class="stock-badge text-white text-xs px-2 py-1 rounded-full">6 left</span>
+                    </div>
+                    
+                    <p class="text-text-gray text-xs md:text-sm">Energy Drink - 250ml</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-primary font-bold text-lg">₹125</span>
+                        <button class="add-to-cart bg-primary text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all duration-200 transform hover:scale-105" 
+                                data-product="redbull" data-price="125" data-name="Red Bull">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- @END_MAP )) -->
+    </main>
+    <!-- @END_COMPONENT: ProductGrid -->
+
+    <!-- @COMPONENT: CartDrawer [sliding cart panel] -->
+    <div id="cartDrawer" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50" id="cartOverlay"></div>
+        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl animate-slide-up">
+            <div class="flex flex-col h-full">
+                <!-- Cart Header -->
+                <div class="flex items-center justify-between p-6 border-b">
+                    <h2 class="text-xl font-semibold text-text-dark">Your Cart</h2>
+                    <button id="closeCart" class="p-2 hover:bg-gray-100 rounded-lg">
+                        <i class="fas fa-times text-xl text-text-gray"></i>
+                    </button>
+                </div>
+
+                <!-- Cart Items -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div id="cartItems" class="space-y-4">
+                        <!-- Cart items will be dynamically added here -->
+                        <div class="text-center text-text-gray py-8">
+                            <i class="fas fa-shopping-cart text-4xl mb-4"></i>
+                            <p>Your cart is empty</p>
+                            <p class="text-sm">Add some delicious snacks!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Footer -->
+                <div class="border-t p-6 space-y-4">
+                    <div class="flex justify-between text-lg font-semibold">
+                        <span>Total:</span>
+                        <span id="cartTotal" class="text-primary">₹0</span>
+                    </div>
+                    <button id="checkoutBtn" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all duration-200 disabled:opacity-50" disabled>
+                        Proceed to Checkout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: CartDrawer -->
+
+    <!-- @COMPONENT: CheckoutModal [payment and order details] -->
+    <div id="checkoutModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-md w-full animate-scale-in">
+                <div class="p-6">
+                    <h2 class="text-xl font-semibold text-text-dark mb-6">Checkout</h2>
+                    
+                    <!-- Order Summary -->
+                    <div class="space-y-4 mb-6">
+                        <h3 class="font-medium text-text-dark">Order Summary</h3>
+                        <div id="checkoutItems" class="space-y-2">
+                            <!-- Items will be populated here -->
+                        </div>
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between font-semibold text-lg">
+                                <span>Total:</span>
+                                <span id="checkoutTotal" class="text-primary">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="space-y-4 mb-6">
+                        <h3 class="font-medium text-text-dark">Payment Method</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary">
+                                <input type="radio" name="payment" value="cash" class="text-primary" checked>
+                                <i class="fas fa-money-bill-wave text-secondary"></i>
+                                <span>Cash on Delivery</span>
+                            </label>
+                            <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary">
+                                <input type="radio" name="payment" value="upi" class="text-primary">
+                                <i class="fas fa-mobile-alt text-primary"></i>
+                                <span>UPI Payment</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- UPI Details (Hidden by default) -->
+                    <div id="upiDetails" class="hidden space-y-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-medium text-text-dark">UPI Payment Details</h4>
+                        <div class="text-center">
+                            <div class="bg-white p-4 rounded-lg inline-block">
+                                <!-- QR Code placeholder -->
+                                <div class="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-qrcode text-4xl text-gray-400"></i>
+                                </div>
+                            </div>
+                            <p class="text-sm text-text-gray mt-2">Scan QR code to pay</p>
+                            <p class="text-sm font-medium">UPI ID: snackhub@paytm</p>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Info -->
+                    <div class="space-y-4 mb-6">
+                        <h3 class="font-medium text-text-dark">Delivery Information</h3>
+                        <select class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                            <option>Select Hostel Block</option>
+                            <option>Block A</option>
+                            <option>Block B</option>
+                            <option>Block C</option>
+                            <option>Block D</option>
+                        </select>
+                        <input type="text" placeholder="Room Number" 
+                               class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-3">
+                        <button id="cancelCheckout" class="flex-1 px-4 py-2 border border-gray-300 text-text-gray rounded-lg hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button id="placeOrder" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90">
+                            Place Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: CheckoutModal -->
+
+    <!-- @COMPONENT: SuccessModal [order confirmation with animation] -->
+    <div id="successModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-sm w-full text-center p-8 animate-bounce-in">
+                <div class="animate-success-tick mb-6">
+                    <div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto">
+                        <i class="fas fa-check text-white text-3xl"></i>
+                    </div>
+                </div>
+                
+                <h2 class="text-2xl font-bold text-text-dark mb-2">Order Placed!</h2>
+                <p class="text-text-gray mb-6">Your order will be delivered in 15-20 minutes</p>
+                
+                <div class="space-y-3 mb-6">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-sm font-medium">Order ID: <span id="orderId">#SP001</span></p>
+                    </div>
+                </div>
+                
+                <button id="closeSuccess" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: SuccessModal -->
+
+    <!-- @COMPONENT: LoginModal [Google Sign-in with domain restriction] -->
+    <div id="loginModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-8 animate-scale-in">
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-store text-white text-2xl"></i>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-text-dark mb-2">Welcome to SnackHub</h2>
+                    <p class="text-text-gray mb-6">Sign in with your KIIT email to continue</p>
+                    
+                    <button id="googleSignIn" class="w-full flex items-center justify-center space-x-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200">
+                        <i class="fab fa-google text-xl"></i>
+                        <span class="font-medium">Continue with Google</span>
+                    </button>
+                    
+                    <p class="text-xs text-text-gray mt-4">Only @kiit.ac.in emails are allowed</p>
+                    
+                    <button id="closeLogin" class="mt-6 text-text-gray hover:text-text-dark">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: LoginModal -->
+
+    <!-- Audio for success sound -->
+    <audio id="successSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmyhBSuMy+/BdCUGJ3fH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuMy+/BdCUGJ3fH<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIIT Snack Store - Quick Commerce</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF6B35',
+                        'primary-dark': '#E55A2B',
+                        coral: '#FF8A65',
+                        success: '#10B981',
+                        'success-dark': '#059669',
+                        warning: '#FFC107',
+                        background: '#FAFAFA',
+                        'gray-light': '#F5F5F5',
+                        charcoal: '#2D3748'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif']
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.5s ease-out',
+                        'success-tick': 'successTick 0.6s ease-out'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.3)', opacity: '0' },
+                            '50%': { transform: 'scale(1.05)' },
+                            '70%': { transform: 'scale(0.9)' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        },
+                        successTick: {
+                            '0%': { transform: 'scale(0)', opacity: '0' },
+                            '30%': { transform: 'scale(1.2)', opacity: '1' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="font-inter bg-background min-h-screen">
+
+    <!-- @COMPONENT: Header [navigation and user auth] -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                        <i class="fas fa-cookie-bite text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-charcoal">KIIT Snack Store</h1>
+                        <p class="text-xs text-gray-500">Quick delivery to your hostel</p>
+                    </div>
+                </div>
+
+                <!-- Search Bar (Desktop) -->
+                <div class="hidden md:flex flex-1 max-w-lg mx-8">
+                    <div class="relative w-full">
+                        <input type="text" placeholder="Search for snacks, drinks, instant food..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <!-- Cart Button -->
+                    <button class="relative p-2 hover:bg-gray-light rounded-lg transition-colors duration-200" onclick="toggleCart()">
+                        <i class="fas fa-shopping-cart text-xl text-charcoal"></i>
+                        <span id="cart-count" class="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">0</span>
+                    </button>
+
+                    <!-- User Profile / Login -->
+                    <div id="user-section" class="flex items-center space-x-3">
+                        <!-- Login Button (shown when not logged in) -->
+                        <button id="login-btn" class="bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                                onclick="showLoginModal()">
+                            <i class="fas fa-user mr-2"></i>Login
+                        </button>
+                        
+                        <!-- User Profile (shown when logged in, initially hidden) -->
+                        <div id="user-profile" class="hidden flex items-center space-x-3">
+                            <img id="user-avatar" src="" alt="User" class="w-8 h-8 rounded-full">
+                            <span id="user-name" class="text-sm font-medium text-charcoal"></span>
+                            <button onclick="logout()" class="text-red-500 hover:text-red-700 transition-colors duration-200">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar -->
+        <div class="md:hidden px-4 pb-3">
+            <div class="relative">
+                <input type="text" placeholder="Search snacks..." 
+                       class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <!-- @COMPONENT: LoginModal [Google OAuth with domain restriction] -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full transform scale-95 transition-transform duration-300">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user text-white text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-charcoal mb-2">Welcome to KIIT Snack Store</h2>
+                <p class="text-gray-600 mb-6">Sign in with your KIIT email to continue</p>
+                
+                <button class="w-full bg-white border-2 border-gray-200 rounded-lg py-3 px-4 flex items-center justify-center space-x-3 hover:border-primary transition-colors duration-200 mb-4"
+                        onclick="signInWithGoogle()">
+                    <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" class="w-5 h-5">
+                    <span class="font-medium">Continue with Google</span>
+                </button>
+                
+                <p class="text-xs text-gray-500">Only @kiit.ac.in emails are allowed</p>
+                
+                <button onclick="hideLoginModal()" class="mt-4 text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                    <i class="fas fa-times mr-1"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: LoginModal -->
+
+    <!-- @COMPONENT: HeroBanner [promotional section] -->
+    <section class="bg-gradient-to-r from-primary to-coral text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Instant Snacks to Your Hostel!</h2>
+                <p class="text-lg md:text-xl opacity-90 mb-6">Fastest delivery on campus • Fresh snacks • 24/7 service</p>
+                <div class="flex flex-wrap justify-center gap-4 text-sm">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-clock"></i>
+                        <span>10-15 min delivery</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Safe payment</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-star"></i>
+                        <span>Fresh guarantee</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: HeroBanner -->
+
+    <!-- @COMPONENT: CategoryTabs [product categories] -->
+    <section class="bg-white py-6 sticky top-16 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-1 overflow-x-auto scrollbar-hide">
+                <button class="category-btn active flex-shrink-0 px-6 py-3 rounded-full font-medium transition-all duration-200" data-category="all">
+                    <i class="fas fa-th-large mr-2"></i>All Items
+                </button>
+                <button class="category-btn flex-shrink-0 px-6 py-3 rounded-full font-medium transition-all duration-200" data-category="snacks">
+                    <i class="fas fa-cookie mr-2"></i>Snacks
+                </button>
+                <button class="category-btn flex-shrink-0 px-6 py-3 rounded-full font-medium transition-all duration-200" data-category="drinks">
+                    <i class="fas fa-coffee mr-2"></i>Drinks
+                </button>
+                <button class="category-btn flex-shrink-0 px-6 py-3 rounded-full font-medium transition-all duration-200" data-category="instant">
+                    <i class="fas fa-fire mr-2"></i>Instant Food
+                </button>
+                <button class="category-btn flex-shrink-0 px-6 py-3 rounded-full font-medium transition-all duration-200" data-category="sweets">
+                    <i class="fas fa-candy-cane mr-2"></i>Sweets
+                </button>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: CategoryTabs -->
+
+    <!-- @COMPONENT: ProductGrid [main product display] -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="products-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- @MAP: products.map(product => ( -->
+            
+            <!-- Product Card 1 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="snacks">
+                <!-- Maggi instant noodles packet with steam rising from a bowl -->
+                <img src="https://pixabay.com/get/g4f046ae254a101033c27fb438b72366305b343adb780e40bb36b8e8131d28dbe0a1ff3e6b7dfd3c76b2b14c4881ba413cf33b8f315df40dac6a0c0bd71ac0b38_1280.jpg" 
+                     alt="Maggi Noodles" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2" data-bind="product.name">Maggi Masala Noodles</h3>
+                    <p class="text-sm text-gray-600 mb-3" data-bind="product.description">Classic instant noodles - 2 min cook</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary" data-bind="product.price">₹15</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-success text-xs"></i>
+                            <span class="text-xs text-success font-medium" data-bind="product.stock">23 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":1,"name":"Maggi Masala Noodles","price":15,"image":"maggi.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Card 2 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="drinks">
+                <!-- Red Bull energy drink can with condensation droplets -->
+                <img src="https://images.unsplash.com/photo-1570831739435-6601aa3fa4fb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
+                     alt="Red Bull Energy Drink" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2">Red Bull Energy Drink</h3>
+                    <p class="text-sm text-gray-600 mb-3">Wings when you need them most</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary">₹125</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-success text-xs"></i>
+                            <span class="text-xs text-success font-medium">15 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":2,"name":"Red Bull Energy Drink","price":125,"image":"redbull.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Card 3 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="snacks">
+                <!-- Golden crispy potato chips in a bright packet -->
+                <img src="https://images.unsplash.com/photo-1566478989037-eec170784d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
+                     alt="Lay's Potato Chips" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2">Lay's Classic Chips</h3>
+                    <p class="text-sm text-gray-600 mb-3">Crispy and perfectly salted</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary">₹20</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-warning text-xs"></i>
+                            <span class="text-xs text-warning font-medium">5 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":3,"name":"Lays Classic Chips","price":20,"image":"lays.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Card 4 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="drinks">
+                <!-- Cold Coca Cola bottle with ice cubes and condensation -->
+                <img src="https://pixabay.com/get/g8e7bf464b9f8e3f964c42383c8c834294869d3e7ca8560f5ff4e0f9cc329a6d04bef6cc10c042cea4727c53e4cf36138fe850f4fdbc64de8bdc56059d84a67b2_1280.jpg" 
+                     alt="Coca Cola" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2">Coca Cola 330ml</h3>
+                    <p class="text-sm text-gray-600 mb-3">The original taste</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary">₹25</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-success text-xs"></i>
+                            <span class="text-xs text-success font-medium">30 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":4,"name":"Coca Cola 330ml","price":25,"image":"coke.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Card 5 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="instant">
+                <!-- Steaming cup of instant coffee with coffee beans scattered around -->
+                <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
+                     alt="Nescafe Coffee" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2">Nescafe Classic Coffee</h3>
+                    <p class="text-sm text-gray-600 mb-3">Rich instant coffee</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary">₹35</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-success text-xs"></i>
+                            <span class="text-xs text-success font-medium">12 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":5,"name":"Nescafe Classic Coffee","price":35,"image":"nescafe.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Card 6 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="sweets">
+                <!-- Colorful assorted chocolates and candies arranged beautifully -->
+                <img src="https://pixabay.com/get/gc142fe0339a5eb8d243f319069c7f95afa22700e8c9501dff836c730f68ad1fbd89d05292285f77631e8faf9b3a22fc0f5f4d3b1bd52a94f8049d98753592551_1280.jpg" 
+                     alt="Dairy Milk Chocolate" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2">Dairy Milk Chocolate</h3>
+                    <p class="text-sm text-gray-600 mb-3">Creamy milk chocolate bar</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary">₹45</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-success text-xs"></i>
+                            <span class="text-xs text-success font-medium">18 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":6,"name":"Dairy Milk Chocolate","price":45,"image":"dairymilk.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Card 7 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="instant">
+                <!-- Bowl of steaming hot ramen noodles with vegetables and chopsticks -->
+                <img src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
+                     alt="Cup Noodles" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2">Cup Noodles Chicken</h3>
+                    <p class="text-sm text-gray-600 mb-3">Ready in 3 minutes</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary">₹30</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-success text-xs"></i>
+                            <span class="text-xs text-success font-medium">20 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":7,"name":"Cup Noodles Chicken","price":30,"image":"cupnoodles.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Card 8 -->
+            <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl" data-category="drinks">
+                <!-- Fresh orange juice glass with orange slices and mint leaves -->
+                <img src="https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
+                     alt="Tropicana Orange Juice" class="w-full h-48 object-cover" data-mock="true" />
+                <div class="p-4">
+                    <h3 class="font-semibold text-charcoal mb-2">Tropicana Orange Juice</h3>
+                    <p class="text-sm text-gray-600 mb-3">100% pure orange juice</p>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xl font-bold text-primary">₹50</span>
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-box text-success text-xs"></i>
+                            <span class="text-xs text-success font-medium">8 left</span>
+                        </div>
+                    </div>
+                    <button class="add-to-cart w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200"
+                            data-product='{"id":8,"name":"Tropicana Orange Juice","price":50,"image":"tropicana.jpg"}'>
+                        <i class="fas fa-plus mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+
+            <!-- @END_MAP )) -->
+        </div>
+
+        <!-- Load More Button -->
+        <div class="text-center mt-12">
+            <button class="bg-gray-light text-charcoal px-8 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors duration-200">
+                <i class="fas fa-plus mr-2"></i>Load More Products
+            </button>
+        </div>
+    </main>
+    <!-- @END_COMPONENT: ProductGrid -->
+
+    <!-- @COMPONENT: CartSidebar [shopping cart overlay] -->
+    <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50">
+        <div class="flex flex-col h-full">
+            <!-- Cart Header -->
+            <div class="flex items-center justify-between p-6 border-b">
+                <h2 class="text-xl font-bold text-charcoal">Your Cart</h2>
+                <button onclick="toggleCart()" class="p-2 hover:bg-gray-light rounded-lg transition-colors duration-200">
+                    <i class="fas fa-times text-xl text-gray-500"></i>
+                </button>
+            </div>
+
+            <!-- Cart Items -->
+            <div id="cart-items" class="flex-1 overflow-y-auto p-6">
+                <div id="empty-cart" class="text-center py-12">
+                    <div class="w-16 h-16 bg-gray-light rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shopping-cart text-gray-400 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-500 mb-4">Your cart is empty</p>
+                    <button onclick="toggleCart()" class="text-primary font-medium hover:text-primary-dark transition-colors duration-200">
+                        Continue Shopping
+                    </button>
+                </div>
+
+                <!-- Cart item template (initially hidden) -->
+                <div id="cart-item-template" class="hidden cart-item flex items-center space-x-4 py-4 border-b">
+                    <img src="" alt="" class="w-16 h-16 object-cover rounded-lg cart-item-image">
+                    <div class="flex-1">
+                        <h4 class="font-medium text-charcoal cart-item-name"></h4>
+                        <p class="text-primary font-bold cart-item-price"></p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="w-8 h-8 bg-gray-light rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors duration-200 quantity-decrease">
+                            <i class="fas fa-minus text-xs"></i>
+                        </button>
+                        <span class="w-8 text-center font-medium cart-item-quantity">1</span>
+                        <button class="w-8 h-8 bg-gray-light rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors duration-200 quantity-increase">
+                            <i class="fas fa-plus text-xs"></i>
+                        </button>
+                    </div>
+                    <button class="p-2 text-red-500 hover:text-red-700 transition-colors duration-200 remove-item">
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cart Footer -->
+            <div id="cart-footer" class="hidden border-t p-6">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-lg font-bold">
+                        <span>Total:</span>
+                        <span id="cart-total" class="text-primary">₹0</span>
+                    </div>
+                    <button onclick="proceedToCheckout()" class="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200">
+                        <i class="fas fa-credit-card mr-2"></i>Proceed to Checkout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: CartSidebar -->
+
+    <!-- @COMPONENT: CheckoutModal [order placement and payment] -->
+    <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-screen overflow-y-auto">
+            <div class="p-6 border-b">
+                <h2 class="text-2xl font-bold text-charcoal">Checkout</h2>
+            </div>
+
+            <div class="p-6">
+                <!-- @STATE: checkoutStep:string = 'details' -->
+                
+                <!-- Step 1: Order Details -->
+                <div id="checkout-details" class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Delivery Details</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-charcoal mb-2">Hostel Block</label>
+                                <select class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent">
+                                    <option>Select your hostel block</option>
+                                    <option>Block A</option>
+                                    <option>Block B</option>
+                                    <option>Block C</option>
+                                    <option>Block D</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-charcoal mb-2">Room Number</label>
+                                <input type="text" placeholder="e.g., 201" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-charcoal mb-2">Phone Number</label>
+                                <input type="tel" placeholder="Your mobile number" class="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Payment Method</h3>
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors duration-200">
+                                <input type="radio" name="payment" value="cash" class="text-primary" checked>
+                                <i class="fas fa-money-bill-wave text-success"></i>
+                                <span class="font-medium">Cash on Delivery</span>
+                            </label>
+                            <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors duration-200">
+                                <input type="radio" name="payment" value="upi" class="text-primary">
+                                <i class="fas fa-mobile-alt text-primary"></i>
+                                <span class="font-medium">UPI Payment</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center text-lg font-bold mb-4">
+                            <span>Total Amount:</span>
+                            <span id="checkout-total" class="text-primary">₹0</span>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button onclick="hideCheckoutModal()" class="flex-1 bg-gray-light text-charcoal py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors duration-200">
+                                Cancel
+                            </button>
+                            <button onclick="placeOrder()" class="flex-1 bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200">
+                                <i class="fas fa-check mr-2"></i>Place Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: UPI Payment (hidden initially) -->
+                <div id="upi-payment" class="hidden text-center space-y-6">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">UPI Payment</h3>
+                        <div class="bg-gray-light p-8 rounded-xl">
+                            <div class="w-48 h-48 bg-white mx-auto rounded-lg flex items-center justify-center mb-4">
+                                <!-- QR Code placeholder -->
+                                <div class="text-6xl text-gray-400">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-2">Scan QR code to pay</p>
+                            <p class="font-bold text-lg">₹<span id="upi-amount">0</span></p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button onclick="backToDetails()" class="flex-1 bg-gray-light text-charcoal py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors duration-200">
+                            Back
+                        </button>
+                        <button onclick="confirmUPIPayment()" class="flex-1 bg-success text-white py-3 rounded-lg font-medium hover:bg-success-dark transition-colors duration-200">
+                            Payment Done
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: CheckoutModal -->
+
+    <!-- @COMPONENT: OrderSuccessModal [order confirmation] -->
+    <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full text-center">
+            <div class="w-20 h-20 bg-success rounded-full flex items-center justify-center mx-auto mb-6 animate-success-tick">
+                <i class="fas fa-check text-white text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-charcoal mb-4">Order Placed Successfully!</h2>
+            <p class="text-gray-600 mb-6">Your delicious snacks will be delivered to your hostel in 10-15 minutes.</p>
+            <div class="bg-gray-light p-4 rounded-lg mb-6">
+                <p class="text-sm text-gray-600">Order ID:</p>
+                <p class="font-bold text-charcoal" id="order-id">#KS2023001</p>
+            </div>
+            <button onclick="hideSuccessModal()" class="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors duration-200">
+                Continue Shopping
+            </button>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: OrderSuccessModal -->
+
+    <!-- @COMPONENT: FloatingCartButton [mobile cart button] -->
+    <button id="floating-cart" class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-40 lg:hidden hover:bg-primary-dark transition-all duration-200 transform hover:scale-110"
+            onclick="toggleCart()">
+        <i class="fas fa-shopping-cart text-xl"></i>
+        <span id="floating-cart-count" class="absolute -top-2 -right-2 bg-coral text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-medium">0</span>
+    </button>
+    <!-- @END_COMPONENT: FloatingCartButton -->
+
+    <script>
+        (function() {
+            // TODO: Implement Google OAuth integration with domain restriction
+            // TODO: Implement real-time stock management
+            // TODO: Implement order tracking and history
+            // TODO: Implement push notifications for order updates
+            
+            // Cart state management
+            let cart = [];
+            let isLoggedIn = false;
+            let currentUser = null;
+
+            // DOM elements
+            const cartSidebar = document.getElementById('cart-sidebar');
+            const cartCount = document.getElementById('cart-count');
+            const floatingCartCount = document.getElementById('floating-cart-count');
+            const cartItems = document.getElementById('cart-items');
+            const cartFooter = document.getElementById('cart-footer');
+            const emptyCart = document.getElementById('empty-cart');
+            const cartTotal = document.getElementById('cart-total');
+
+            // Initialize app
+            function init() {
+                setupEventListeners();
+                setupCategoryFilter();
+                loadCartFromStorage();
+                updateCartDisplay();
+            }
+
+            // Event listeners
+            function setupEventListeners() {
+                // Add to cart buttons
+                document.querySelectorAll('.add-to-cart').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const product = JSON.parse(this.dataset.product);
+                        addToCart(product);
+                        
+                        // Visual feedback
+                        this.innerHTML = '<i class="fas fa-check mr-2"></i>Added!';
+                        this.classList.add('bg-success');
+                        setTimeout(() => {
+                            this.innerHTML = '<i class="fas fa-plus mr-2"></i>Add to Cart';
+                            this.classList.remove('bg-success');
+                        }, 1000);
+                    });
+                });
+            }
+
+            // Category filtering
+            function setupCategoryFilter() {
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        // Update active state
+                        document.querySelectorAll('.category-btn').forEach(b => {
+                            b.classList.remove('active', 'bg-primary', 'text-white');
+                            b.classList.add('bg-gray-light', 'text-charcoal');
+                        });
+                        this.classList.add('active', 'bg-primary', 'text-white');
+                        this.classList.remove('bg-gray-light', 'text-charcoal');
+
+                        // Filter products
+                        const category = this.dataset.category;
+                        filterProducts(category);
+                    });
+                });
+
+                // Set initial active state
+                document.querySelector('.category-btn[data-category="all"]').classList.add('bg-primary', 'text-white');
+                document.querySelectorAll('.category-btn:not([data-category="all"])').forEach(btn => {
+                    btn.classList.add('bg-gray-light', 'text-charcoal');
+                });
+            }
+
+            function filterProducts(category) {
+                const products = document.querySelectorAll('.product-card');
+                products.forEach(product => {
+                    if (category === 'all' || product.dataset.category === category) {
+                        product.style.display = 'block';
+                        product.classList.add('animate-fade-in');
+                    } else {
+                        product.style.display = 'none';
+                    }
+                });
+            }
+
+            // Cart functionality
+            function addToCart(product) {
+                const existingItem = cart.find(item => item.id === product.id);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    cart.push({ ...product, quantity: 1 });
+                }
+                
+                saveCartToStorage();
+                updateCartDisplay();
+                showCartPreview();
+            }
+
+            function removeFromCart(productId) {
+                cart = cart.filter(item => item.id !== productId);
+                saveCartToStorage();
+                updateCartDisplay();
+            }
+
+            function updateQuantity(productId, change) {
+                const item = cart.find(item => item.id === productId);
+                if (item) {
+                    item.quantity += change;
+                    if (item.quantity <= 0) {
+                        removeFromCart(productId);
+                    } else {
+                        saveCartToStorage();
+                        updateCartDisplay();
+                    }
+                }
+            }
+
+            function updateCartDisplay() {
+                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+                const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+                // Update cart count
+                cartCount.textContent = totalItems;
+                floatingCartCount.textContent = totalItems;
+
+                // Update cart sidebar
+                if (cart.length === 0) {
+                    emptyCart.style.display = 'block';
+                    cartFooter.style.display = 'none';
+                    cartItems.querySelectorAll('.cart-item:not(#cart-item-template)').forEach(item => item.remove());
+                } else {
+                    emptyCart.style.display = 'none';
+                    cartFooter.style.display = 'block';
+                    renderCartItems();
+                    cartTotal.textContent = `₹${totalPrice}`;
+                    document.getElementById('checkout-total').textContent = `₹${totalPrice}`;
+                }
+            }
+
+            function renderCartItems() {
+                // Clear existing items
+                cartItems.querySelectorAll('.cart-item:not(#cart-item-template)').forEach(item => item.remove());
+
+                // Add current cart items
+                cart.forEach(item => {
+                    const cartItem = document.getElementById('cart-item-template').cloneNode(true);
+                    cartItem.id = '';
+                    cartItem.classList.remove('hidden');
+
+                    cartItem.querySelector('.cart-item-image').src = `https://images.unsplash.com/photo-1561758033-48d1462c9908?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100`;
+                    cartItem.querySelector('.cart-item-image').alt = item.name;
+                    cartItem.querySelector('.cart-item-name').textContent = item.name;
+                    cartItem.querySelector('.cart-item-price').textContent = `₹${item.price}`;
+                    cartItem.querySelector('.cart-item-quantity').textContent = item.quantity;
+
+                    // Event listeners for quantity and remove
+                    cartItem.querySelector('.quantity-decrease').addEventListener('click', () => updateQuantity(item.id, -1));
+                    cartItem.querySelector('.quantity-increase').addEventListener('click', () => updateQuantity(item.id, 1));
+                    cartItem.querySelector('.remove-item').addEventListener('click', () => removeFromCart(item.id));
+
+                    cartItems.appendChild(cartItem);
+                });
+            }
+
+            function showCartPreview() {
+                // Briefly show cart if closed
+                if (cartSidebar.classList.contains('translate-x-full')) {
+                    cartSidebar.classList.remove('translate-x-full');
+                    setTimeout(() => {
+                        cartSidebar.classList.add('translate-x-full');
+                    }, 2000);
+                }
+            }
+
+            // Storage functions
+            function saveCartToStorage() {
+                localStorage.setItem('kiit_snack_cart', JSON.stringify(cart));
+            }
+
+            function loadCartFromStorage() {
+                const savedCart = localStorage.getItem('kiit_snack_cart');
+                if (savedCart) {
+                    cart = JSON.parse(savedCart);
+                }
+            }
+
+            // Global functions for HTML event handlers
+            window.toggleCart = function() {
+                cartSidebar.classList.toggle('translate-x-full');
+            };
+
+            window.showLoginModal = function() {
+                document.getElementById('login-modal').classList.remove('hidden');
+                setTimeout(() => {
+                    document.querySelector('#login-modal .bg-white').classList.remove('scale-95');
+                    document.querySelector('#login-modal .bg-white').classList.add('scale-100');
+                }, 10);
+            };
+
+            window.hideLoginModal = function() {
+                document.querySelector('#login-modal .bg-white').classList.add('scale-95');
+                document.querySelector('#login-modal .bg-white').classList.remove('scale-100');
+                setTimeout(() => {
+                    document.getElementById('login-modal').classList.add('hidden');
+                }, 300);
+            };
+
+            window.signInWithGoogle = function() {
+                // TODO: Implement actual Google OAuth
+                // For demo purposes, simulate login
+                simulateGoogleLogin();
+            };
+
+            function simulateGoogleLogin() {
+                // Simulate successful login
+                currentUser = {
+                    name: 'John Doe',
+                    email: 'john.doe@kiit.ac.in',
+                    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=32&h=32'
+                };
+                isLoggedIn = true;
+
+                // Update UI
+                document.getElementById('login-btn').style.display = 'none';
+                document.getElementById('user-profile').classList.remove('hidden');
+                document.getElementById('user-name').textContent = currentUser.name;
+                document.getElementById('user-avatar').src = currentUser.avatar;
+
+                hideLoginModal();
+            }
+
+            window.logout = function() {
+                isLoggedIn = false;
+                currentUser = null;
+                document.getElementById('login-btn').style.display = 'block';
+                document.getElementById('user-profile').classList.add('hidden');
+            };
+
+            window.proceedToCheckout = function() {
+                if (!isLoggedIn) {
+                    showLoginModal();
+                    return;
+                }
+                
+                if (cart.length === 0) {
+                    alert('Your cart is empty!');
+                    return;
+                }
+
+                document.getElementById('checkout-modal').classList.remove('hidden');
+                toggleCart(); // Close cart sidebar
+            };
+
+            window.hideCheckoutModal = function() {
+                document.getElementById('checkout-modal').classList.add('hidden');
+                document.getElementById('checkout-details').style.display = 'block';
+                document.getElementById('upi-payment').classList.add('hidden');
+            };
+
+            window.placeOrder = function() {
+                const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+                
+                if (paymentMethod === 'upi') {
+                    showUPIPayment();
+                } else {
+                    processOrder();
+                }
+            };
+
+            function showUPIPayment() {
+                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                document.getElementById('upi-amount').textContent = total;
+                document.getElementById('checkout-details').style.display = 'none';
+                document.getElementById('upi-payment').classList.remove('hidden');
+            }
+
+            window.backToDetails = function() {
+                document.getElementById('checkout-details').style.display = 'block';
+                document.getElementById('upi-payment').classList.add('hidden');
+            };
+
+            window.confirmUPIPayment = function() {
+                processOrder();
+            };
+
+            function processOrder() {
+                // TODO: Process actual order with backend
+                
+                // Generate order ID
+                const orderId = `#KS${Date.now()}`;
+                document.getElementById('order-id').textContent = orderId;
+
+                // Clear cart
+                cart = [];
+                saveCartToStorage();
+                updateCartDisplay();
+
+                // Show success modal
+                hideCheckoutModal();
+                document.getElementById('success-modal').classList.remove('hidden');
+
+                // Play success sound (simulated)
+                playSuccessSound();
+            }
+
+            function playSuccessSound() {
+                // TODO: Implement actual sound effect
+                // For now, we'll use the Web Audio API to create a simple beep
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+
+            window.hideSuccessModal = function() {
+                document.getElementById('success-modal').classList.add('hidden');
+            };
+
+            // Initialize the app
+            init();
+        })();
+    </script>
+</body>
+</html>

@@ -19,7 +19,7 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md text-center" data-testid="success-modal">
         <div className="space-y-6">
-          <div className="w-20 h-20 bg-success rounded-full flex items-center justify-center mx-auto animate-bounce-in">
+          <div className="w-20 h-20 bg-success rounded-full flex items-center justify-center mx-auto animate-bounce">
             <i className="fas fa-check text-white text-3xl"></i>
           </div>
           

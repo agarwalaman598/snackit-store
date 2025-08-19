@@ -6,12 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Home from "@/pages/Home";
 import Admin from "@/pages/Admin";
+import Orders from "@/pages/Orders";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   const { isAuthenticated, isLoading, isAdmin } = useAuth();
 
-  // Don't show loading for unauthenticated users after initial load
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -23,6 +23,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/orders" component={Orders} />
       {isAuthenticated && isAdmin && <Route path="/admin" component={Admin} />}
       <Route component={NotFound} />
     </Switch>
