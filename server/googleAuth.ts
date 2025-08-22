@@ -45,8 +45,15 @@ export function getSession() {
   });
 }
 
+type UserSession = {
+  claims?: Record<string, any>;
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: number;
+};
+
 function updateUserSession(
-  user: any,
+  user: UserSession,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
 ) {
   user.claims = tokens.claims();
@@ -55,7 +62,7 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
-async function upsertUser(claims: any) {
+async function upsertUser(claims: Record<string, any>) {
   // Check if email is from allowed domain
   if (!claims.email?.endsWith(`@${ALLOWED_DOMAIN}`)) {
     throw new Error(`Only ${ALLOWED_DOMAIN} emails are allowed`);
@@ -82,12 +89,13 @@ export async function setupAuth(app: Express) {
     verified: passport.AuthenticateCallback
   ) => {
     try {
-      const user = {};
-      updateUserSession(user, tokens);
-      await upsertUser(tokens.claims());
-      verified(null, user);
-    } catch (error: any) {
-      verified(error);
+      const user: UserSession = {};
+  updateUserSession(user, tokens);
+  const claims = tokens.claims() || {};
+  await upsertUser(claims);
+      verified(null, user as unknown as Express.User);
+    } catch (error) {
+      verified(error as any);
     }
   };
 
@@ -128,9 +136,9 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
+  const user = req.user as UserSession | undefined;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -157,9 +165,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 };
 
 export const isAdmin: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
-  
-  if (!req.isAuthenticated()) {
+  const user = req.user as UserSession | undefined;
+
+  if (!req.isAuthenticated() || !user?.claims?.email) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

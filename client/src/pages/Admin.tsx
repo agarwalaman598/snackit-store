@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -21,6 +21,7 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [productFormOpen, setProductFormOpen] = useState(false);
+  const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
   const [pickupMessageEdits, setPickupMessageEdits] = useState<Record<string, string>>({});
@@ -29,6 +30,58 @@ export default function Admin() {
   const { data: orders = [] } = useQuery<OrderWithItems[]>({ queryKey: ["/api/admin/orders"], refetchInterval: 5000 });
   const { data: categories = [] } = useQuery<Category[]>({ queryKey: ["/api/categories"] });
   const { data: settings, refetch: refetchSettings } = useQuery<Settings>({ queryKey: ["/api/admin/settings"] });
+
+  // Local editable settings + autosave
+  const [localSettings, setLocalSettings] = useState<Partial<Settings>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevSettingsRef = useRef<Partial<Settings> | null>(null);
+
+  useEffect(() => {
+    if (settings) setLocalSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
+
+  const saveSettingsNow = async (payload: Partial<Settings>) => {
+    const prev = prevSettingsRef.current;
+    try {
+      setIsSaving(true);
+      await apiRequest("PUT", "/api/admin/settings", payload);
+      await refetchSettings();
+      // success: clear snapshot
+      prevSettingsRef.current = null;
+      toast({ title: "Saved", description: "Settings updated." });
+      playSuccessSound();
+    } catch (err: any) {
+      // Rollback optimistic local settings if we have a snapshot
+      if (prev) {
+        setLocalSettings(prev);
+        prevSettingsRef.current = null;
+      }
+      toast({ title: "Error", description: err?.message ?? "Failed to save settings.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const scheduleSave = (partial: Partial<Settings>) => {
+    // capture snapshot before optimistic update if none exists
+    setLocalSettings(prev => {
+      if (!prevSettingsRef.current) prevSettingsRef.current = prev ? { ...prev } : {};
+      return { ...(prev || {}), ...partial };
+    });
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      // send merged payload based on latest localSettings
+      saveSettingsNow({ ...(localSettings || {}), ...partial });
+      saveTimeoutRef.current = null;
+    }, 700);
+  };
 
   const productMutationOptions = {
     onSuccess: () => {
@@ -43,6 +96,27 @@ export default function Admin() {
     mutationFn: (data: InsertProduct) => apiRequest("POST", "/api/admin/products", data),
     ...productMutationOptions,
     onSuccess: () => { productMutationOptions.onSuccess(); toast({ title: "Success", description: "Product created." }); },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: (data: { name: string; icon?: string; slug?: string }) => apiRequest("POST", "/api/admin/categories", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setCategoryFormOpen(false);
+      toast({ title: "Success", description: "Category created." });
+      playSuccessSound();
+    },
+    onError: (error: any) => toast({ title: "Error", description: error?.message ?? "Failed to create category.", variant: "destructive" }),
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id: string) => apiRequest('DELETE', `/api/admin/categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({ title: 'Success', description: 'Category deleted.' });
+      playSuccessSound();
+    },
+    onError: (error: any) => toast({ title: 'Error', description: error?.message ?? 'Failed to delete category', variant: 'destructive' }),
   });
 
   const updateProductMutation = useMutation({
@@ -81,13 +155,11 @@ export default function Admin() {
   const handleProductSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data: InsertProduct = { name: formData.get("name") as string, description: formData.get("description") as string, price: formData.get("price") as string, categoryId: formData.get("categoryId") as string, imageUrl: formData.get("imageUrl") as string, stock: parseInt(formData.get("stock") as string, 10), isActive: true };
-    const allowCash = (formData.get("allowCash") as unknown) !== null;
-    const allowUpi = (formData.get("allowUpi") as unknown) !== null;
-    const discountCashPercent = Number(formData.get("discountCashPercent") || 0);
-    const discountUpiPercent = Number(formData.get("discountUpiPercent") || 0);
-    // Extend payload with payment flags and product-level discounts
-    const payload = { ...(data as any), allowCash, allowUpi, discountCashPercent, discountUpiPercent };
+  const data: InsertProduct = { name: formData.get("name") as string, description: formData.get("description") as string, price: formData.get("price") as string, categoryId: formData.get("categoryId") as string, imageUrl: formData.get("imageUrl") as string, stock: parseInt(formData.get("stock") as string, 10), isActive: true };
+  const allowCash = (formData.get("allowCash") as unknown) !== null;
+  const allowUpi = (formData.get("allowUpi") as unknown) !== null;
+  // Extend payload with payment flags. Product-level discounts are handled by DB defaults/settings and removed from the admin form.
+  const payload = { ...data, allowCash, allowUpi } as unknown as InsertProduct & { allowCash: boolean; allowUpi: boolean };
     if (editingProduct) {
       updateProductMutation.mutate({ id: editingProduct.id, data: payload });
     } else {
@@ -136,34 +208,38 @@ export default function Admin() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Pickup Point</label>
-                    <Input defaultValue={(settings as any)?.pickupPoint} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { pickupPoint: e.currentTarget.value }); await refetchSettings(); toast({ title: "Saved", description: "Pickup point updated." }); playSuccessSound(); }} />
+                    <Input value={localSettings?.pickupPoint ?? ''} onChange={(e) => scheduleSave({ pickupPoint: e.currentTarget.value })} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Contact Phone</label>
-                    <Input defaultValue={(settings as any)?.contactPhone} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { contactPhone: e.currentTarget.value }); await refetchSettings(); toast({ title: "Saved", description: "Phone updated." }); playSuccessSound(); }} />
+                    <Input value={localSettings?.contactPhone ?? ''} onChange={(e) => scheduleSave({ contactPhone: e.currentTarget.value })} />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">UPI ID (optional)</label>
-                    <Input defaultValue={(settings as any)?.upiId ?? ""} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { upiId: e.currentTarget.value || null }); await refetchSettings(); toast({ title: "Saved", description: "UPI ID updated." }); playSuccessSound(); }} />
+                    <Input value={localSettings?.upiId ?? ''} onChange={(e) => scheduleSave({ upiId: e.currentTarget.value || null })} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">UPI QR URL (optional)</label>
-                    <Input defaultValue={(settings as any)?.upiQrUrl ?? ""} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { upiQrUrl: e.currentTarget.value || null }); await refetchSettings(); toast({ title: "Saved", description: "UPI QR updated." }); playSuccessSound(); }} />
+                    <Input value={localSettings?.upiQrUrl ?? ''} onChange={(e) => scheduleSave({ upiQrUrl: e.currentTarget.value || null })} />
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked={(settings as any)?.acceptingOrders !== false} onChange={async (e) => { await apiRequest("PUT", "/api/admin/settings", { acceptingOrders: e.currentTarget.checked }); await refetchSettings(); toast({ title: "Saved", description: "Accepting orders toggled." }); playSuccessSound(); }} />
+                    <input type="checkbox" checked={localSettings?.acceptingOrders !== false} onChange={(e) => scheduleSave({ acceptingOrders: e.currentTarget.checked })} />
                     <span>Accepting Orders</span>
                   </label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-700">Resume at</span>
-                    <Input type="datetime-local" defaultValue={(settings as any)?.resumeAt ? new Date((settings as any).resumeAt).toISOString().slice(0,16) : ""} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { resumeAt: e.currentTarget.value || '' }); await refetchSettings(); toast({ title: "Saved", description: "Resume time updated." }); playSuccessSound(); }} />
+                    <Input type="datetime-local" value={localSettings?.resumeAt ? new Date(localSettings.resumeAt).toISOString().slice(0,16) : ''} onChange={(e) => scheduleSave({ resumeAt: e.currentTarget.value ? new Date(e.currentTarget.value) : null })} />
                   </div>
-                  <Button onClick={async () => { playClickSound(); await refetchSettings(); toast({ title: "Refreshed", description: "Settings reloaded." }); }} className="btn-primary animate-pulse">Save & Refresh</Button>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => { if (saveTimeoutRef.current) { clearTimeout(saveTimeoutRef.current); saveTimeoutRef.current = null; } saveSettingsNow(localSettings || {}); }} className="btn-primary">Save Now</Button>
+                    <Button onClick={async () => { playClickSound(); await refetchSettings(); toast({ title: "Refreshed", description: "Settings reloaded." }); }} className="btn-secondary">Refresh</Button>
+                    {isSaving && <div className="text-sm text-gray-500">Saving…</div>}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -171,13 +247,35 @@ export default function Admin() {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-black text-gray-900">Product Management</h2>
-                  <Dialog open={productFormOpen} onOpenChange={setProductFormOpen}>
+                  <div className="flex items-center gap-2">
+                    <Dialog open={categoryFormOpen} onOpenChange={setCategoryFormOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="btn-secondary">Add Category</Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-xl font-black text-gray-900">Add Category</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={(e) => {
+                          e.preventDefault();
+                          const fd = new FormData(e.currentTarget as HTMLFormElement);
+                          const payload = { name: fd.get('name') as string, icon: fd.get('icon') as string || undefined, slug: fd.get('slug') as string || undefined };
+                          createCategoryMutation.mutate(payload);
+                        }} className="space-y-4">
+                          <Input name="name" placeholder="Category name" required />
+                          <Input name="icon" placeholder="Icon (e.g., fas fa-pizza)" />
+                          <Input name="slug" placeholder="Optional slug" />
+                          <Button type="submit" className="w-full btn-primary">Create Category</Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog open={productFormOpen} onOpenChange={setProductFormOpen}>
                     <DialogTrigger asChild>
                       <Button onClick={() => setEditingProduct(null)} className="btn-primary">
                         <i className="fas fa-plus mr-2"></i>Add Product
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle className="text-xl font-black text-gray-900">
                           {editingProduct ? "Edit Product" : "Add New Product"}
@@ -192,51 +290,51 @@ export default function Admin() {
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            {categories.map(c => (
+                              <SelectItem key={c.id} value={c.id}><i className={`${c.icon} mr-2 text-lg`} />{c.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <Input name="imageUrl" placeholder="Image URL" type="url" defaultValue={editingProduct?.imageUrl ?? ""} className="border-gray-200 focus:border-orange-500 focus:ring-orange-500" />
                         <Input name="stock" type="number" placeholder="Stock" defaultValue={editingProduct?.stock ?? 0} required className="border-gray-200 focus:border-orange-500 focus:ring-orange-500" />
                         <div className="grid grid-cols-2 gap-4">
                           <label className="flex items-center space-x-2">
-                            <input type="checkbox" name="allowCash" defaultChecked={(editingProduct as any)?.allowCash ?? true} />
+                            <input type="checkbox" name="allowCash" defaultChecked={editingProduct?.allowCash ?? true} />
                             <span>Allow Cash</span>
                           </label>
                           <label className="flex items-center space-x-2">
-                            <input type="checkbox" name="allowUpi" defaultChecked={(editingProduct as any)?.allowUpi ?? true} />
+                            <input type="checkbox" name="allowUpi" defaultChecked={editingProduct?.allowUpi ?? true} />
                             <span>Allow UPI</span>
                           </label>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <Input name="discountCashPercent" type="number" placeholder="Cash discount %" defaultValue={(editingProduct as any)?.discountCashPercent ?? 0} />
-                          <Input name="discountUpiPercent" type="number" placeholder="UPI discount %" defaultValue={(editingProduct as any)?.discountUpiPercent ?? 0} />
-                        </div>
+                        {/* Product-level discount fields removed — discounts are managed globally via Store Settings */}
                         <Button type="submit" className="w-full btn-primary">
                           Save Product
                         </Button>
                       </form>
                     </DialogContent>
-                  </Dialog>
+                    </Dialog>
+                  </div>
                 </div>
                 <Card className="border border-gray-100 shadow-lg">
                   <div className="p-4 flex items-center gap-3">
-                    <Input placeholder="Search products..." onChange={(e) => {
+                          <Input placeholder="Search products..." onChange={(e) => {
                       const term = e.currentTarget.value.toLowerCase();
-                      queryClient.setQueryData(["/api/products"], (products as any).filter((p: any) => p.name.toLowerCase().includes(term)));
+                      queryClient.setQueryData(["/api/products"], (products as Product[]).filter((p: Product) => p.name.toLowerCase().includes(term)));
                     }} />
                     <Select onValueChange={(catId) => {
                       if (!catId) return;
-                      queryClient.setQueryData(["/api/products"], (products as any).filter((p: any) => p.categoryId === catId));
+                      queryClient.setQueryData(["/api/products"], (products as Product[]).filter((p: Product) => p.categoryId === catId));
                     }}>
                       <SelectTrigger className="w-56">
-                        <SelectValue placeholder="Filter by category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
+                          <SelectValue placeholder="Filter by category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(c => <SelectItem key={c.id} value={c.id}><i className={`${c.icon} mr-2 text-lg`} />{c.name}</SelectItem>)}
+                        </SelectContent>
                     </Select>
                   </div>
-                  <Table>
+                    <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-50">
                         <TableHead className="font-bold text-gray-900">Name</TableHead>
@@ -256,8 +354,8 @@ export default function Admin() {
                           <TableCell className="text-gray-600">{product.stock}</TableCell>
                           <TableCell className="text-gray-600">
                             <div className="flex gap-2">
-                              {(product as any).allowCash !== false && <Badge variant="secondary">Cash</Badge>}
-                              {(product as any).allowUpi !== false && <Badge variant="secondary">UPI</Badge>}
+                              {product.allowCash !== false && <Badge variant="secondary">Cash</Badge>}
+                              {product.allowUpi !== false && <Badge variant="secondary">UPI</Badge>}
                             </div>
                           </TableCell>
                           <TableCell className="text-right space-x-2">
@@ -299,6 +397,45 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </Card>
+
+                {/* Category management list */}
+                <Card className="border border-gray-100 shadow-lg mt-6">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-black">Categories</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {categories.map(c => (
+                        <div key={c.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-3">
+                            <i className={`${c.icon} text-2xl`} />
+                            <div>
+                              <div className="font-medium">{c.name}</div>
+                              <div className="text-xs text-gray-500">{c.slug}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">Delete</Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete category?</AlertDialogTitle>
+                                  <AlertDialogDescription>Deleting a category is irreversible. Ensure no products are assigned to this category.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteCategoryMutation.mutate(c.id)} className="bg-red-500 hover:bg-red-600">Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
             {activeTab === 'orders' && (
@@ -324,8 +461,8 @@ export default function Admin() {
                         <TableRow key={order.id} className="hover:bg-gray-50">
                           <TableCell className="font-medium text-gray-900">#{order.id.slice(-6).toUpperCase()}</TableCell>
                           <TableCell className="text-gray-600">{order.user.firstName} {order.user.lastName}</TableCell>
-                          <TableCell className="text-gray-600">{(order as any).phoneNumber}</TableCell>
-                          <TableCell className="text-gray-600">{(order as any).hostelBlock}-{(order as any).roomNumber}</TableCell>
+                          <TableCell className="text-gray-600">{order.phoneNumber}</TableCell>
+                          <TableCell className="text-gray-600">{order.hostelBlock}-{order.roomNumber}</TableCell>
                           <TableCell className="font-bold text-orange-600">₹{order.totalAmount}</TableCell>
                           <TableCell className="text-gray-600">{order.paymentMethod.toUpperCase()}</TableCell>
                           <TableCell>
@@ -344,7 +481,7 @@ export default function Admin() {
                             <div className="flex items-center space-x-2">
                               <Input 
                                 placeholder="e.g., Collect from 6A-298 in 10-15 minutes"
-                                value={pickupMessageEdits[order.id] ?? (order as any).pickupMessage ?? ''}
+                                value={pickupMessageEdits[order.id] ?? order.pickupMessage ?? ''}
                                 onChange={(e) => setPickupMessageEdits(prev => ({ ...prev, [order.id]: e.target.value }))}
                               />
                               <Button size="sm" onClick={() => updatePickupMessageMutation.mutate({ id: order.id, pickupMessage: pickupMessageEdits[order.id] ?? '' })}>Save</Button>

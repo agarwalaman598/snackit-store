@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { z } from 'zod';
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import { insertProductSchema, insertSettingsSchema, type InsertOrderItem, type InsertOrder } from "@shared/schema";
@@ -50,9 +51,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (s && s.acceptingOrders === false) {
         return res.status(400).json({ message: "We are not accepting new orders right now." });
       }
-      // ... (order creation logic remains the same)
+      // Validate request body
+      const createOrderSchema = z.object({
+        items: z.array(z.object({ productId: z.string(), quantity: z.number().int().min(1) })),
+        deliveryAddress: z.any(),
+        paymentMethod: z.enum(['cash', 'upi']),
+        phoneNumber: z.string().min(3),
+        paymentNote: z.string().optional(),
+      });
+
+      const parsed = createOrderSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: 'Invalid order payload', errors: parsed.error.errors });
+      }
+
+      const { items, deliveryAddress, paymentMethod, phoneNumber, paymentNote } = parsed.data;
       const userId = req.user.id;
-      const { items, deliveryAddress, paymentMethod, phoneNumber, paymentNote } = req.body;
       let totalAmount = 0;
       const orderItemsData: Omit<InsertOrderItem, 'orderId'>[] = [];
       for (const item of items) {
@@ -61,10 +75,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: `Insufficient stock for ${product?.name || 'product'}` });
         }
         // Enforce per-product payment methods
-        if (paymentMethod === 'cash' && (product as any).allowCash === false) {
+  if (paymentMethod === 'cash' && product.allowCash === false) {
           return res.status(400).json({ message: `Cash is not available for ${product.name}` });
         }
-        if (paymentMethod === 'upi' && (product as any).allowUpi === false) {
+  if (paymentMethod === 'upi' && product.allowUpi === false) {
           return res.status(400).json({ message: `UPI is not available for ${product.name}` });
         }
         // No discounts – charge base price
@@ -72,11 +86,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const unitAfter = base;
         const itemTotal = base * item.quantity;
         totalAmount += itemTotal;
-        orderItemsData.push({ productId: item.productId, quantity: item.quantity, unitPrice: unitAfter.toFixed(2) as any, totalPrice: itemTotal.toFixed(2)});
+        orderItemsData.push({ productId: item.productId, quantity: item.quantity, unitPrice: unitAfter.toFixed(2), totalPrice: itemTotal.toFixed(2)});
       }
       // No global discount application
-
-      const orderData: InsertOrder = { userId, totalAmount: totalAmount.toFixed(2), paymentMethod, deliveryAddress, hostelBlock: deliveryAddress.hostelBlock, roomNumber: deliveryAddress.roomNumber, phoneNumber, paymentNote, paymentStatus: 'pending', orderStatus: 'placed' } as any;
+      const orderData: InsertOrder = {
+        userId,
+        totalAmount: totalAmount.toFixed(2),
+        paymentMethod,
+        deliveryAddress,
+        hostelBlock: deliveryAddress.hostelBlock,
+        roomNumber: deliveryAddress.roomNumber,
+        phoneNumber,
+        paymentNote: paymentNote ?? null,
+        paymentStatus: 'pending',
+        orderStatus: 'placed',
+      };
       const order = await storage.createOrder(orderData, orderItemsData);
       res.status(201).json(order);
     } catch (error) {
@@ -117,6 +141,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(product);
   });
 
+  // Admin: create category
+  app.post('/api/admin/categories', isAdmin, async (req, res) => {
+    try {
+      const body = req.body;
+      if (!body.name) return res.status(400).json({ message: 'Name is required' });
+      const created = await storage.createCategory({ name: body.name, icon: body.icon ?? 'fas fa-utensils', slug: body.slug });
+      res.status(201).json(created);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to create category' });
+    }
+  });
+
   app.put('/api/admin/products/:id', isAdmin, async (req, res) => {
     const product = await storage.updateProduct(req.params.id, req.body);
     res.json(product);
@@ -132,6 +168,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // -------------------------
+
+  // Admin: delete category
+  app.delete('/api/admin/categories/:id', isAdmin, async (req, res) => {
+    try {
+      const success = await storage.deleteCategory(req.params.id);
+      if (success) return res.status(200).json({ message: 'Category deleted' });
+      return res.status(404).json({ message: 'Category not found' });
+    } catch (err: any) {
+      return res.status(400).json({ message: err?.message ?? 'Failed to delete category' });
+    }
+  });
 
   app.put('/api/admin/orders/:id/status', isAdmin, async (req, res) => {
     const order = await storage.updateOrderStatus(req.params.id, req.body.status);

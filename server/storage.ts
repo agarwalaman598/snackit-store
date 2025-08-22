@@ -31,6 +31,20 @@ export class DatabaseStorage {
     return await db.query.categories.findMany({ orderBy: [asc(categories.name)] });
   }
 
+  async createCategory(categoryData: { name: string; icon: string; slug?: string }): Promise<Category> {
+    const slug = categoryData.slug || categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const [category] = await db.insert(categories).values({ name: categoryData.name, icon: categoryData.icon || 'fas fa-utensils', slug }).returning();
+    return category;
+  }
+
+  async deleteCategory(id: string): Promise<boolean> {
+    // Prevent deleting a category that has products associated with it.
+    const linked = await db.query.products.findFirst({ where: eq(products.categoryId, id) });
+    if (linked) throw new Error('Cannot delete category with products. Reassign or delete products first.');
+    const deleted = await db.delete(categories).where(eq(categories.id, id)).returning();
+    return deleted.length > 0;
+  }
+
   // PRODUCT METHODS
   async getProducts(): Promise<ProductWithCategory[]> {
     return await db.query.products.findMany({
@@ -119,7 +133,7 @@ export class DatabaseStorage {
     if (row) return row;
     const [created] = await db
       .insert(settings)
-      .values({ id: 'default' } as any)
+      .values({ id: 'default' })
       .onConflictDoNothing()
       .returning();
     return created || (await db.query.settings.findFirst({}))!;
@@ -128,7 +142,7 @@ export class DatabaseStorage {
   async updateSettings(data: Partial<InsertSettings>): Promise<Settings> {
     const [row] = await db
       .update(settings)
-      .set({ ...data, updatedAt: new Date() } as any)
+      .set({ ...(data as Partial<InsertSettings>), updatedAt: new Date() })
       .where(eq(settings.id, 'default'))
       .returning();
     return row;

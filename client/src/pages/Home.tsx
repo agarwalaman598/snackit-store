@@ -13,6 +13,7 @@ import SuccessModal from "@/components/SuccessModal";
 import LoginModal from "@/components/LoginModal";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { Settings } from "@shared/schema";
 
 export default function Home() {
   const isMobile = useIsMobile();
@@ -27,7 +28,7 @@ export default function Home() {
   const { addToHistory } = useSearchHistory();
   const [location] = useLocation();
   const { toast } = useToast();
-  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
+  const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
 
   // Check for domain error in URL
   useEffect(() => {
@@ -74,9 +75,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           {/* Orders paused banner */}
-          {((settings as any)?.acceptingOrders === false) && (
+          {(settings?.acceptingOrders === false) && (
             <div className="mb-4 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-md inline-flex items-center px-4 py-2 font-semibold">
-              We are not accepting new orders right now{(settings as any)?.resumeAt ? ` • Resumes at ${new Date((settings as any).resumeAt).toLocaleString()}` : ''}
+              We are not accepting new orders right now{settings?.resumeAt ? ` • Resumes at ${new Date(settings.resumeAt).toLocaleString()}` : ''}
             </div>
           )}
           <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
@@ -88,12 +89,8 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             {/* Removed delivery ETA; show a concise pickup hint */}
             <div className="flex items-center space-x-2 bg-white bg-opacity-20 rounded-full px-6 py-3 backdrop-blur-sm">
-              <i className="fas fa-bell text-2xl"></i>
-              <span className="font-semibold">Quick pickup available</span>
-            </div>
-            <div className="flex items-center space-x-2 bg-white bg-opacity-20 rounded-full px-6 py-3 backdrop-blur-sm">
               <i className="fas fa-map-marker-alt text-2xl"></i>
-              <span className="font-semibold">Pickup at {(settings as any)?.pickupPoint || '6A-298'}</span>
+              <span className="font-semibold">Pickup at {settings?.pickupPoint || '6A-298'}</span>
             </div>
           </div>
         </div>

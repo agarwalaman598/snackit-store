@@ -1,26 +1,51 @@
 // Simple success sound using Web Audio API
+let sharedAudioContext: AudioContext | null = null;
+let audioAllowed = false;
+
+const ensureAudio = () => {
+  if (!sharedAudioContext) {
+    try {
+      sharedAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    } catch (err) {
+      // unable to create audio context
+      sharedAudioContext = null;
+    }
+  }
+  return sharedAudioContext;
+};
+
+export const allowAudioPlayback = () => {
+  // call this on first user gesture
+  audioAllowed = true;
+  const ctx = ensureAudio();
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+};
+
 export const playSuccessSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    // Create a simple success melody
+    if (!audioAllowed) return;
+    const audioContext = ensureAudio();
+    if (!audioContext) return;
+
     const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
-    let startTime = audioContext.currentTime;
-    
+    const startTime = audioContext.currentTime;
+
     frequencies.forEach((frequency, index) => {
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       oscillator.frequency.value = frequency;
       oscillator.type = 'sine';
-      
+
       gainNode.gain.setValueAtTime(0, startTime + index * 0.2);
       gainNode.gain.linearRampToValueAtTime(0.3, startTime + index * 0.2 + 0.05);
       gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + index * 0.2 + 0.3);
-      
+
       oscillator.start(startTime + index * 0.2);
       oscillator.stop(startTime + index * 0.2 + 0.3);
     });
@@ -32,9 +57,11 @@ export const playSuccessSound = () => {
 // Button click sound
 export const playClickSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+  if (!audioAllowed) return;
+  const audioContext = ensureAudio();
+  if (!audioContext) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
     
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
@@ -55,9 +82,11 @@ export const playClickSound = () => {
 // Add to cart sound
 export const playAddToCartSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+  if (!audioAllowed) return;
+  const audioContext = ensureAudio();
+  if (!audioContext) return;
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
     
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);

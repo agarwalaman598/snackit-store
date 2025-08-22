@@ -29,7 +29,7 @@ export default function CartSidebar({ isOpen, onClose, onCheckout }: CartSidebar
         }`}
         data-testid="cart-sidebar"
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col min-h-0 h-full">
           {/* Cart Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-red-50">
             <h2 className="text-2xl font-black text-gray-900" data-testid="cart-title">Your Cart</h2>
@@ -43,7 +43,7 @@ export default function CartSidebar({ isOpen, onClose, onCheckout }: CartSidebar
           </div>
 
           {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 min-h-0">
             {items.length === 0 ? (
               <div className="text-center py-12" data-testid="empty-cart">
                 <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-red-100 rounded-full flex items-center justify-center mx-auto mb-6">

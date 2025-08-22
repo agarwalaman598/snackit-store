@@ -29,8 +29,12 @@ export default function CategoryTabs({ selectedCategory, onCategoryChange }: Cat
               }`}
               onClick={() => onCategoryChange(category.id)}
               data-testid={`category-tab-${category.id}`}
+              role="tab"
+              aria-selected={selectedCategory === category.id}
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCategoryChange(category.id); } }}
             >
-              <i className={`${category.icon} mr-2`}></i>
+              <i className={`${category.icon} mr-2 text-lg`}></i>
               {category.name}
             </button>
           ))}

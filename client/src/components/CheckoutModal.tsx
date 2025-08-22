@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import type { Settings } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
   const { items, totalAmount, clearCart } = useCart();
   const { toast } = useToast();
-  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 10000 });
+  const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"], refetchInterval: 10000 });
 
   const [step, setStep] = useState<"details" | "upi">("details");
   const [formData, setFormData] = useState({
@@ -45,8 +46,8 @@ export default function CheckoutModal({
   });
 
   const paymentAvailability = (() => {
-    const allowCash = items.every((i) => (i as any).allowCash !== false);
-    const allowUpi = items.every((i) => (i as any).allowUpi !== false);
+    const allowCash = items.every((i) => i.allowCash !== false);
+    const allowUpi = items.every((i) => i.allowUpi !== false);
     return { allowCash, allowUpi };
   })();
 
@@ -75,7 +76,7 @@ export default function CheckoutModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (settings && (settings as any).acceptingOrders === false) {
+  if (settings && settings.acceptingOrders === false) {
       toast({ title: "Orders Paused", description: "We are not accepting new orders right now.", variant: "destructive" });
       return;
     }
@@ -116,13 +117,13 @@ export default function CheckoutModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md w-full sm:mx-0 mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Checkout</DialogTitle>
         </DialogHeader>
 
         {step === "details" ? (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 min-h-0">
             <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl">
               <h3 className="font-bold text-lg text-gray-900 mb-3">Order Summary</h3>
               <div className="space-y-2 text-sm">
@@ -249,14 +250,14 @@ export default function CheckoutModal({
               <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-xl">
                 <div className="w-40 h-40 bg-white mx-auto rounded-xl flex items-center justify-center mb-4 p-2 shadow-lg">
                   <img
-                    src={(settings as any)?.upiQrUrl || "/my_qr.jpg"}
+                    src={settings?.upiQrUrl || "/my_qr.jpg"}
                     alt="UPI QR Code"
                     className="w-full h-full object-contain"
                   />
                 </div>
                 <p className="font-black text-2xl text-orange-600">₹{totalAmount}</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  UPI ID: {(settings as any)?.upiId || 'agarwalaman598@slc'}
+                  UPI ID: {settings?.upiId || 'agarwalaman598@slc'}
                 </p>
               </div>
             </div>

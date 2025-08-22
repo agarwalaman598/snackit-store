@@ -4,13 +4,18 @@ import session from 'express-session';
 import type { Express, RequestHandler } from "express";
 import connectPg from 'connect-pg-simple';
 import { storage } from './storage';
+import type { User } from '@shared/schema';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID_ENV_VAR || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET_ENV_VAR || "";
-const SESSION_SECRET = process.env.SESSION_SECRET || process.env.SESSION_SECRET_ENV_VAR || "default_secret";
+const SESSION_SECRET = process.env.SESSION_SECRET || process.env.SESSION_SECRET_ENV_VAR;
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
   console.warn("Google OAuth credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.");
+}
+
+if (process.env.NODE_ENV === 'production' && !SESSION_SECRET) {
+  throw new Error('SESSION_SECRET must be set in production');
 }
 
 export function getSession() {
@@ -18,13 +23,14 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    // create the table automatically if missing to avoid silent failures on first run
+    createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
   });
   
   return session({
-    secret: SESSION_SECRET,
+  secret: SESSION_SECRET || 'dev_secret',
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -74,8 +80,9 @@ export async function setupAuth(app: Express) {
           });
 
           // Flag admin in session model if email matches
-          if (isAdminEmail) {
-            (user as any).isAdmin = true;
+          if (isAdminEmail && user) {
+            // storage.upsertUser may return a mutable object; ensure isAdmin is set
+            (user as unknown as Partial<User>).isAdmin = true;
           }
 
           return done(null, user);
@@ -154,8 +161,9 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
 };
 
 export const isAdmin: RequestHandler = (req, res, next) => {
-  if (req.isAuthenticated && req.isAuthenticated() && (req.user as any)?.isAdmin) {
-    return next();
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    const u = req.user as User | undefined | null;
+    if (u && u.isAdmin) return next();
   }
   res.status(403).json({ message: "Admin access required" });
 };

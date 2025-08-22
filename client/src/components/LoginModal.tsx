@@ -15,7 +15,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md text-center" data-testid="login-modal">
+      <DialogContent className="max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto text-center" data-testid="login-modal">
         <div className="space-y-6">
           <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto">
             <i className="fas fa-user text-white text-2xl"></i>
@@ -45,8 +45,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               Important Notice
             </p>
             <p className="text-xs text-gray-600">
-              Only <strong>@kiit.ac.in</strong> email addresses are allowed. 
-              This ensures fast delivery to your hostel location.
+              Only <strong>@kiit.ac.in</strong> email addresses are allowed.
             </p>
           </div>
           
