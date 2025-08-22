@@ -22,7 +22,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </div>
           
           <div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome to SnackIT</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome to Snack Attax</h2>
             <p className="text-gray-600 mb-6">Your midnight snack companion</p>
           </div>
           

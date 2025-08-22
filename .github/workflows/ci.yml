@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build client & server bundle
+        run: npm run build
+
+      - name: (Optional) Install Playwright browsers
+        if: env.RUN_PLAYWRIGHT == 'true'
+        run: npx playwright install --with-deps
+
+      - name: (Optional) Run Playwright tests
+        if: env.RUN_PLAYWRIGHT == 'true'
+        run: npx playwright test
+
+  render-deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: secrets.RENDER_API_KEY && secrets.RENDER_SERVICE_ID
+    steps:
+      - name: Trigger Render deploy
+        run: |
+          echo "Triggering Render deploy for service ${{ secrets.RENDER_SERVICE_ID }}"
+          curl -sS -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache":false}'

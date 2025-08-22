@@ -48,8 +48,8 @@ export default function Header({
               <i className="fas fa-cookie-bite text-white text-xl"></i>
             </div>
             <div>
-              <h1 className="text-2xl font-black text-gray-900 tracking-tight">SnackIT</h1>
-              <p className="text-xs text-gray-600 font-medium">Midnight Crunchy Delights</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight gradient-text">Snack Attax</h1>
+              <p className="text-xs md:text-sm text-gray-600 font-medium">Midnight Crunchy Delights</p>
             </div>
           </div>
 

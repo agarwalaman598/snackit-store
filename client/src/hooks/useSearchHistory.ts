@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const SEARCH_HISTORY_KEY = 'snackit-search-history';
+const SEARCH_HISTORY_KEY = 'snack-attax-search-history';
 const MAX_HISTORY_ITEMS = 10;
 
 export function useSearchHistory() {

@@ -16,7 +16,7 @@ export default function DomainError() {
             {/* Main Message */}
             <h1 className="text-3xl font-black text-gray-900 mb-4">Email Domain Restricted</h1>
             <p className="text-gray-600 mb-6 text-lg leading-relaxed">
-              We're sorry, but SnackIT is currently only available for KIIT University students and staff.
+              We're sorry, but Snack Attax is currently only available for KIIT University students and staff.
             </p>
             
             {/* Domain Info */}
@@ -41,7 +41,7 @@ export default function DomainError() {
                 Why This Restriction?
               </h3>
               <div className="text-left space-y-2 text-sm text-gray-600">
-                <p>• SnackIT is designed specifically for KIIT University campus</p>
+                      <p>• Snack Attax is designed specifically for KIIT University campus</p>
                 <p>• We ensure fast delivery to hostel locations</p>
                 <p>• Campus-specific payment and delivery methods</p>
                 <p>• Student-friendly pricing and offers</p>
@@ -71,8 +71,8 @@ export default function DomainError() {
             <div className="mt-8 pt-6 border-t border-gray-200">
               <p className="text-sm text-gray-500">
                 Have questions? Contact us at{' '}
-                <a href="mailto:support@snackit.com" className="text-orange-600 hover:text-orange-700 font-medium">
-                  support@snackit.com
+                  <a href="mailto:support@snackattax.com" className="text-orange-600 hover:text-orange-700 font-medium">
+                    support@snackattax.com
                 </a>
               </p>
             </div>
