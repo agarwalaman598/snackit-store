@@ -5,6 +5,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import Breadcrumb from "@/components/Breadcrumb";
 import { Button } from "@/components/ui/button";
+import { playSuccessSound, playClickSound } from "@/lib/sounds";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Product, OrderWithItems, InsertProduct, Category } from "@shared/schema";
+import { Product, OrderWithItems, InsertProduct, Category, Settings } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Admin() {
@@ -22,10 +23,12 @@ export default function Admin() {
   const [productFormOpen, setProductFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
+  const [pickupMessageEdits, setPickupMessageEdits] = useState<Record<string, string>>({});
 
   const { data: products = [] } = useQuery<Product[]>({ queryKey: ["/api/products"] });
-  const { data: orders = [] } = useQuery<OrderWithItems[]>({ queryKey: ["/api/admin/orders"] });
+  const { data: orders = [] } = useQuery<OrderWithItems[]>({ queryKey: ["/api/admin/orders"], refetchInterval: 5000 });
   const { data: categories = [] } = useQuery<Category[]>({ queryKey: ["/api/categories"] });
+  const { data: settings, refetch: refetchSettings } = useQuery<Settings>({ queryKey: ["/api/admin/settings"] });
 
   const productMutationOptions = {
     onSuccess: () => {
@@ -66,14 +69,29 @@ export default function Admin() {
     onError: () => toast({ title: "Error", description: "Failed to update order status.", variant: "destructive" }),
   });
 
+  const updatePickupMessageMutation = useMutation({
+    mutationFn: ({ id, pickupMessage }: { id: string; pickupMessage: string }) => apiRequest("PUT", `/api/admin/orders/${id}/pickup-message`, { pickupMessage }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      toast({ title: "Success", description: "Pickup message updated." });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update pickup message.", variant: "destructive" }),
+  });
+
   const handleProductSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data: InsertProduct = { name: formData.get("name") as string, description: formData.get("description") as string, price: formData.get("price") as string, categoryId: formData.get("categoryId") as string, imageUrl: formData.get("imageUrl") as string, stock: parseInt(formData.get("stock") as string, 10), isActive: true };
+    const allowCash = (formData.get("allowCash") as unknown) !== null;
+    const allowUpi = (formData.get("allowUpi") as unknown) !== null;
+    const discountCashPercent = Number(formData.get("discountCashPercent") || 0);
+    const discountUpiPercent = Number(formData.get("discountUpiPercent") || 0);
+    // Extend payload with payment flags and product-level discounts
+    const payload = { ...(data as any), allowCash, allowUpi, discountCashPercent, discountUpiPercent };
     if (editingProduct) {
-      updateProductMutation.mutate({ id: editingProduct.id, data });
+      updateProductMutation.mutate({ id: editingProduct.id, data: payload });
     } else {
-      createProductMutation.mutate(data);
+      createProductMutation.mutate(payload);
     }
   };
 
@@ -109,6 +127,46 @@ export default function Admin() {
             </nav>
           </div>
           <div className="mt-6">
+            {/* Settings Panel */}
+            <Card className="border border-gray-100 shadow-lg mb-6">
+              <CardHeader>
+                <CardTitle className="text-xl font-black text-gray-900">Store Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Pickup Point</label>
+                    <Input defaultValue={(settings as any)?.pickupPoint} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { pickupPoint: e.currentTarget.value }); await refetchSettings(); toast({ title: "Saved", description: "Pickup point updated." }); playSuccessSound(); }} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Contact Phone</label>
+                    <Input defaultValue={(settings as any)?.contactPhone} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { contactPhone: e.currentTarget.value }); await refetchSettings(); toast({ title: "Saved", description: "Phone updated." }); playSuccessSound(); }} />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">UPI ID (optional)</label>
+                    <Input defaultValue={(settings as any)?.upiId ?? ""} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { upiId: e.currentTarget.value || null }); await refetchSettings(); toast({ title: "Saved", description: "UPI ID updated." }); playSuccessSound(); }} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">UPI QR URL (optional)</label>
+                    <Input defaultValue={(settings as any)?.upiQrUrl ?? ""} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { upiQrUrl: e.currentTarget.value || null }); await refetchSettings(); toast({ title: "Saved", description: "UPI QR updated." }); playSuccessSound(); }} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" defaultChecked={(settings as any)?.acceptingOrders !== false} onChange={async (e) => { await apiRequest("PUT", "/api/admin/settings", { acceptingOrders: e.currentTarget.checked }); await refetchSettings(); toast({ title: "Saved", description: "Accepting orders toggled." }); playSuccessSound(); }} />
+                    <span>Accepting Orders</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-700">Resume at</span>
+                    <Input type="datetime-local" defaultValue={(settings as any)?.resumeAt ? new Date((settings as any).resumeAt).toISOString().slice(0,16) : ""} onBlur={async (e) => { await apiRequest("PUT", "/api/admin/settings", { resumeAt: e.currentTarget.value || '' }); await refetchSettings(); toast({ title: "Saved", description: "Resume time updated." }); playSuccessSound(); }} />
+                  </div>
+                  <Button onClick={async () => { playClickSound(); await refetchSettings(); toast({ title: "Refreshed", description: "Settings reloaded." }); }} className="btn-primary animate-pulse">Save & Refresh</Button>
+                </div>
+              </CardContent>
+            </Card>
             {activeTab === 'products' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
@@ -139,6 +197,20 @@ export default function Admin() {
                         </Select>
                         <Input name="imageUrl" placeholder="Image URL" type="url" defaultValue={editingProduct?.imageUrl ?? ""} className="border-gray-200 focus:border-orange-500 focus:ring-orange-500" />
                         <Input name="stock" type="number" placeholder="Stock" defaultValue={editingProduct?.stock ?? 0} required className="border-gray-200 focus:border-orange-500 focus:ring-orange-500" />
+                        <div className="grid grid-cols-2 gap-4">
+                          <label className="flex items-center space-x-2">
+                            <input type="checkbox" name="allowCash" defaultChecked={(editingProduct as any)?.allowCash ?? true} />
+                            <span>Allow Cash</span>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input type="checkbox" name="allowUpi" defaultChecked={(editingProduct as any)?.allowUpi ?? true} />
+                            <span>Allow UPI</span>
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Input name="discountCashPercent" type="number" placeholder="Cash discount %" defaultValue={(editingProduct as any)?.discountCashPercent ?? 0} />
+                          <Input name="discountUpiPercent" type="number" placeholder="UPI discount %" defaultValue={(editingProduct as any)?.discountUpiPercent ?? 0} />
+                        </div>
                         <Button type="submit" className="w-full btn-primary">
                           Save Product
                         </Button>
@@ -147,6 +219,23 @@ export default function Admin() {
                   </Dialog>
                 </div>
                 <Card className="border border-gray-100 shadow-lg">
+                  <div className="p-4 flex items-center gap-3">
+                    <Input placeholder="Search products..." onChange={(e) => {
+                      const term = e.currentTarget.value.toLowerCase();
+                      queryClient.setQueryData(["/api/products"], (products as any).filter((p: any) => p.name.toLowerCase().includes(term)));
+                    }} />
+                    <Select onValueChange={(catId) => {
+                      if (!catId) return;
+                      queryClient.setQueryData(["/api/products"], (products as any).filter((p: any) => p.categoryId === catId));
+                    }}>
+                      <SelectTrigger className="w-56">
+                        <SelectValue placeholder="Filter by category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-50">
@@ -154,6 +243,7 @@ export default function Admin() {
                         <TableHead className="font-bold text-gray-900">Category</TableHead>
                         <TableHead className="font-bold text-gray-900">Price</TableHead>
                         <TableHead className="font-bold text-gray-900">Stock</TableHead>
+                        <TableHead className="font-bold text-gray-900">Payments</TableHead>
                         <TableHead className="text-right font-bold text-gray-900">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -164,6 +254,12 @@ export default function Admin() {
                           <TableCell className="text-gray-600">{categories.find(c => c.id === product.categoryId)?.name}</TableCell>
                           <TableCell className="font-bold text-orange-600">₹{product.price}</TableCell>
                           <TableCell className="text-gray-600">{product.stock}</TableCell>
+                          <TableCell className="text-gray-600">
+                            <div className="flex gap-2">
+                              {(product as any).allowCash !== false && <Badge variant="secondary">Cash</Badge>}
+                              {(product as any).allowUpi !== false && <Badge variant="secondary">UPI</Badge>}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button 
                               variant="outline" 
@@ -208,10 +304,77 @@ export default function Admin() {
             {activeTab === 'orders' && (
               <div>
                 <h2 className="text-2xl font-black text-gray-900 mb-6">Order Management</h2>
-                <div className="text-center py-12 text-gray-500">
-                  <i className="fas fa-list text-4xl mb-4"></i>
-                  <p>Order management features coming soon...</p>
-                </div>
+                <Card className="border border-gray-100 shadow-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-bold text-gray-900">Order</TableHead>
+                        <TableHead className="font-bold text-gray-900">User</TableHead>
+                        <TableHead className="font-bold text-gray-900">Phone</TableHead>
+                        <TableHead className="font-bold text-gray-900">Room</TableHead>
+                        <TableHead className="font-bold text-gray-900">Amount</TableHead>
+                        <TableHead className="font-bold text-gray-900">Payment</TableHead>
+                        <TableHead className="font-bold text-gray-900">Status</TableHead>
+                        <TableHead className="font-bold text-gray-900">Pickup</TableHead>
+                        <TableHead className="text-right font-bold text-gray-900">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map(order => (
+                        <TableRow key={order.id} className="hover:bg-gray-50">
+                          <TableCell className="font-medium text-gray-900">#{order.id.slice(-6).toUpperCase()}</TableCell>
+                          <TableCell className="text-gray-600">{order.user.firstName} {order.user.lastName}</TableCell>
+                          <TableCell className="text-gray-600">{(order as any).phoneNumber}</TableCell>
+                          <TableCell className="text-gray-600">{(order as any).hostelBlock}-{(order as any).roomNumber}</TableCell>
+                          <TableCell className="font-bold text-orange-600">₹{order.totalAmount}</TableCell>
+                          <TableCell className="text-gray-600">{order.paymentMethod.toUpperCase()}</TableCell>
+                          <TableCell>
+                            <Select defaultValue={order.status} onValueChange={(status) => updateOrderStatusMutation.mutate({ id: order.id, status })}>
+                              <SelectTrigger className="w-36 border-gray-200 focus:border-orange-500 focus:ring-orange-500">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {['placed','confirmed','preparing','ready','delivered','cancelled'].map(s => (
+                                  <SelectItem key={s} value={s}>{s.toUpperCase()}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="w-80">
+                            <div className="flex items-center space-x-2">
+                              <Input 
+                                placeholder="e.g., Collect from 6A-298 in 10-15 minutes"
+                                value={pickupMessageEdits[order.id] ?? (order as any).pickupMessage ?? ''}
+                                onChange={(e) => setPickupMessageEdits(prev => ({ ...prev, [order.id]: e.target.value }))}
+                              />
+                              <Button size="sm" onClick={() => updatePickupMessageMutation.mutate({ id: order.id, pickupMessage: pickupMessageEdits[order.id] ?? '' })}>Save</Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="border-gray-200 text-gray-700 hover:bg-gray-50">View</Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle className="text-xl font-black text-gray-900">Order Details #{order.id.slice(-6).toUpperCase()}</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  {order.orderItems.map(item => (
+                                    <div key={item.id} className="flex justify-between">
+                                      <div className="text-gray-700">{item.product.name} × {item.quantity}</div>
+                                      <div className="font-bold text-orange-600">₹{Number(item.unitPrice) * item.quantity}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
               </div>
             )}
           </div>

@@ -9,6 +9,7 @@ import { OrderWithItems } from "@shared/schema";
 export default function Orders() {
   const { data: orders = [], isLoading } = useQuery<OrderWithItems[]>({
     queryKey: ["/api/orders"],
+    refetchInterval: 5000,
   });
 
   const getOrderStatusBadge = (status: string) => {
@@ -27,9 +28,9 @@ export default function Orders() {
     const descriptions: Record<string, string> = {
       pending: "Your order is being processed",
       confirmed: "Order confirmed! We're preparing your items",
-      preparing: "Your delicious snacks are being prepared",
-      ready: "Your order is ready for pickup/delivery",
-      delivered: "Order delivered successfully!",
+      preparing: "Your snacks are being prepared",
+      ready: "Your order is ready for pickup at 6A-298",
+      delivered: "Order picked up successfully!",
       cancelled: "This order has been cancelled",
     };
     return descriptions[status] || "Order status updated";
@@ -78,7 +79,7 @@ export default function Orders() {
             </div>
           ) : (
             <div className="space-y-6" data-testid="orders-list">
-              {orders.map((order: OrderWithItems) => (
+              {orders.map((order: OrderWithItems & { pickupMessage?: string | null }) => (
                 <Card key={order.id} data-testid={`order-card-${order.id}`} className="border border-gray-100 shadow-lg hover:shadow-xl transition-shadow duration-200">
                   <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 border-b border-orange-200">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -95,6 +96,11 @@ export default function Orders() {
                             minute: '2-digit'
                           })}
                         </p>
+                        {order.pickupMessage && (
+                          <p className="text-sm font-semibold text-orange-600 mt-1">
+                            {order.pickupMessage}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-col items-start sm:items-end gap-2">
                         {getOrderStatusBadge(order.status)}
@@ -126,7 +132,7 @@ export default function Orders() {
                     <div className="border-t border-gray-200 pt-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-sm text-gray-600 font-medium">Delivery Address</p>
+                          <p className="text-sm text-gray-600 font-medium">Contact Details</p>
                           <p className="font-bold text-gray-900">
                             {order.hostelBlock}, Room {order.roomNumber}
                           </p>

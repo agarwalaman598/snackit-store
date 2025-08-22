@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
-import { insertProductSchema, type InsertOrderItem, type InsertOrder } from "@shared/schema";
+import { insertProductSchema, insertSettingsSchema, type InsertOrderItem, type InsertOrder } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
@@ -26,6 +26,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(products);
   });
 
+  // Public settings (read-only)
+  app.get('/api/settings', async (req, res) => {
+    const s = await storage.getSettings();
+    res.json(s);
+  });
+
   // --- Authenticated User Routes ---
   app.get('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
@@ -39,21 +45,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
+      // Respect accepting orders flag
+      const s = await storage.getSettings();
+      if (s && s.acceptingOrders === false) {
+        return res.status(400).json({ message: "We are not accepting new orders right now." });
+      }
       // ... (order creation logic remains the same)
       const userId = req.user.id;
-      const { items, deliveryAddress, paymentMethod, phoneNumber } = req.body;
+      const { items, deliveryAddress, paymentMethod, phoneNumber, paymentNote } = req.body;
       let totalAmount = 0;
       const orderItemsData: Omit<InsertOrderItem, 'orderId'>[] = [];
       for (const item of items) {
         const product = await storage.getProduct(item.productId);
-        if (!product || product.stock < item.quantity) {
+        if (!product || !product.isActive || product.stock < item.quantity) {
           return res.status(400).json({ message: `Insufficient stock for ${product?.name || 'product'}` });
         }
-        const itemTotal = parseFloat(product.price) * item.quantity;
+        // Enforce per-product payment methods
+        if (paymentMethod === 'cash' && (product as any).allowCash === false) {
+          return res.status(400).json({ message: `Cash is not available for ${product.name}` });
+        }
+        if (paymentMethod === 'upi' && (product as any).allowUpi === false) {
+          return res.status(400).json({ message: `UPI is not available for ${product.name}` });
+        }
+        // No discounts – charge base price
+        const base = parseFloat(product.price);
+        const unitAfter = base;
+        const itemTotal = base * item.quantity;
         totalAmount += itemTotal;
-        orderItemsData.push({ productId: item.productId, quantity: item.quantity, unitPrice: product.price, totalPrice: itemTotal.toFixed(2)});
+        orderItemsData.push({ productId: item.productId, quantity: item.quantity, unitPrice: unitAfter.toFixed(2) as any, totalPrice: itemTotal.toFixed(2)});
       }
-      const orderData: InsertOrder = { userId, totalAmount: totalAmount.toFixed(2), paymentMethod, deliveryAddress, hostelBlock: deliveryAddress.hostelBlock, roomNumber: deliveryAddress.roomNumber, phoneNumber, paymentStatus: 'pending', orderStatus: 'placed' };
+      // No global discount application
+
+      const orderData: InsertOrder = { userId, totalAmount: totalAmount.toFixed(2), paymentMethod, deliveryAddress, hostelBlock: deliveryAddress.hostelBlock, roomNumber: deliveryAddress.roomNumber, phoneNumber, paymentNote, paymentStatus: 'pending', orderStatus: 'placed' } as any;
       const order = await storage.createOrder(orderData, orderItemsData);
       res.status(201).json(order);
     } catch (error) {
@@ -65,6 +88,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/orders', isAdmin, async (req, res) => {
     const orders = await storage.getOrders();
     res.json(orders);
+  });
+  app.get('/api/admin/settings', isAdmin, async (req, res) => {
+    const s = await storage.getSettings();
+    res.json(s);
+  });
+  app.put('/api/admin/settings', isAdmin, async (req, res) => {
+    const body = { ...req.body };
+    if (typeof body.resumeAt === 'string' && body.resumeAt) {
+      body.resumeAt = new Date(body.resumeAt);
+    }
+    if (body.resumeAt === '') body.resumeAt = null;
+    // Coerce numeric fields from strings
+    for (const key of ['discountCashPercent','discountUpiPercent'] as const) {
+      if (body[key] !== undefined) body[key] = Number(body[key]);
+    }
+    if (typeof body.acceptingOrders === 'string') {
+      body.acceptingOrders = body.acceptingOrders === 'true';
+    }
+    const parsed = insertSettingsSchema.partial().parse(body);
+    const updated = await storage.updateSettings(parsed);
+    res.json(updated);
   });
   
   app.post('/api/admin/products', isAdmin, async (req, res) => {
@@ -91,6 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/admin/orders/:id/status', isAdmin, async (req, res) => {
     const order = await storage.updateOrderStatus(req.params.id, req.body.status);
+    res.json(order);
+  });
+
+  app.put('/api/admin/orders/:id/pickup-message', isAdmin, async (req, res) => {
+    const order = await storage.updateOrderPickupMessage(req.params.id, req.body.pickupMessage ?? null);
     res.json(order);
   });
 

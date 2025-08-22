@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { playSuccessSound } from "@/lib/sounds";
@@ -9,6 +10,7 @@ interface SuccessModalProps {
 }
 
 export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
   useEffect(() => {
     if (isOpen) {
       playSuccessSound();
@@ -26,13 +28,13 @@ export default function SuccessModal({ isOpen, onClose }: SuccessModalProps) {
           <div>
             <h2 className="text-3xl font-black text-gray-900 mb-4">Order Placed Successfully!</h2>
             <p className="text-gray-600 mb-6 text-lg">
-              Your delicious snacks will be delivered in 10-15 minutes.
+              Please collect your order from room <strong>{(settings as any)?.pickupPoint?.split('-')[1] || '298'}</strong> (Block <strong>{(settings as any)?.pickupPoint?.split('-')[0] || '6A'}</strong>). Call <strong>{(settings as any)?.contactPhone || '7439853544'}</strong> before collecting.
             </p>
           </div>
           
           <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-xl border border-orange-200">
-            <p className="text-sm text-gray-600">Estimated Delivery Time:</p>
-            <p className="font-black text-xl text-orange-600">10-15 minutes</p>
+            <p className="text-sm text-gray-600">Pickup Point</p>
+            <p className="font-black text-xl text-orange-600">{(settings as any)?.pickupPoint || '6A-298'}</p>
           </div>
           
           <Button 

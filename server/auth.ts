@@ -53,14 +53,16 @@ export async function setupAuth(app: Express) {
       async (accessToken, refreshToken, profile, done) => {
         try {
           const email = profile.emails?.[0]?.value;
-          
-          // Check if email is from KIIT domain
-          if (!email || !email.endsWith('@kiit.ac.in')) {
-            // Instead of throwing an error, redirect to domain error page
-            return done(null, false, { 
-              message: 'domain_restricted',
-              email: email 
-            });
+          const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+
+          // Allow admins regardless of domain
+          const isAdminEmail = !!email && adminEmails.includes(email.toLowerCase());
+
+          // Check if email is from KIIT domain for non-admins
+          if (!isAdminEmail) {
+            if (!email || !email.endsWith('@kiit.ac.in')) {
+              return done(null, false, { message: 'domain_restricted', email });
+            }
           }
 
           // Upsert user in database
@@ -70,6 +72,11 @@ export async function setupAuth(app: Express) {
             lastName: profile.name?.familyName || '',
             profileImageUrl: profile.photos?.[0]?.value || '',
           });
+
+          // Flag admin in session model if email matches
+          if (isAdminEmail) {
+            (user as any).isAdmin = true;
+          }
 
           return done(null, user);
         } catch (error) {

@@ -12,6 +12,7 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const [isAdding, setIsAdding] = useState(false);
+  const mrp = Number(product.price);
 
   const handleAddToCart = () => {
     if (product.stock <= 0) return;
@@ -43,8 +44,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
         <p className="text-sm text-gray-600 mb-4 flex-1 leading-relaxed">{product.description}</p>
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-2xl font-black text-orange-600">₹{product.price}</span>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-baseline gap-3">
+            <span className="text-2xl font-black text-orange-600">₹{mrp.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {(product as any).allowCash !== false && (
+              <Badge variant="secondary">Cash</Badge>
+            )}
+            {(product as any).allowUpi !== false && (
+              <Badge variant="secondary">UPI</Badge>
+            )}
+          </div>
         </div>
         <Button
           className="w-full btn-primary"

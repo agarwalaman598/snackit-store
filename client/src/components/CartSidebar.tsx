@@ -9,6 +9,7 @@ interface CartSidebarProps {
 
 export default function CartSidebar({ isOpen, onClose, onCheckout }: CartSidebarProps) {
   const { items, totalAmount, updateQuantity, removeItem } = useCart();
+  
 
   return (
     <>
@@ -74,7 +75,7 @@ export default function CartSidebar({ isOpen, onClose, onCheckout }: CartSidebar
                         {item.name}
                       </h4>
                       <p className="text-orange-600 font-bold text-lg" data-testid={`cart-item-price-${item.id}`}>
-                        ₹{item.price}
+                        ₹{Number(item.price).toFixed(2)}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -117,6 +118,7 @@ export default function CartSidebar({ isOpen, onClose, onCheckout }: CartSidebar
                   <span className="text-gray-900">Total:</span>
                   <span className="text-orange-600">₹{totalAmount}</span>
                 </div>
+                
                 <Button 
                   onClick={onCheckout} 
                   className="w-full btn-primary text-lg py-4"

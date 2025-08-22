@@ -37,6 +37,21 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Global settings (single-row) table
+export const settings = pgTable("settings", {
+  id: varchar("id").primaryKey().default(sql`'default'`),
+  pickupPoint: varchar("pickup_point").notNull().default('6A-298'),
+  contactPhone: varchar("contact_phone").notNull().default('7439853544'),
+  acceptingOrders: boolean("accepting_orders").notNull().default(true),
+  resumeAt: timestamp("resume_at"),
+  discountCashPercent: integer("discount_cash_percent").notNull().default(0),
+  discountUpiPercent: integer("discount_upi_percent").notNull().default(0),
+  upiId: varchar("upi_id"),
+  upiQrUrl: varchar("upi_qr_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Categories table
 export const categories = pgTable("categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -56,6 +71,10 @@ export const products = pgTable("products", {
   categoryId: varchar("category_id").notNull().references(() => categories.id),
   imageUrl: varchar("image_url"),
   isActive: boolean("is_active").default(true),
+  allowCash: boolean("allow_cash").notNull().default(true),
+  allowUpi: boolean("allow_upi").notNull().default(true),
+  discountCashPercent: integer("discount_cash_percent").notNull().default(0),
+  discountUpiPercent: integer("discount_upi_percent").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -72,6 +91,8 @@ export const orders = pgTable("orders", {
   phoneNumber: varchar("phone_number").notNull(),
   hostelBlock: varchar("hostel_block").notNull(),
   roomNumber: varchar("room_number").notNull(),
+  pickupMessage: varchar("pickup_message"),
+  paymentNote: varchar("payment_note"),
   createdAt: timestamp("created_at").defaultNow().notNull(), // <-- FIX
   updatedAt: timestamp("updated_at").defaultNow().notNull(), // <-- FIX
 });
@@ -111,6 +132,8 @@ export const usersRelations = relations(users, ({ many }) => ({
     }),
     orderItems: many(orderItems),
   }));
+
+  export const settingsRelations = relations(settings, () => ({}));
   
   export const orderItemsRelations = relations(orderItems, ({ one }) => ({
     order: one(orders, {
@@ -125,6 +148,12 @@ export const usersRelations = relations(users, ({ many }) => ({
   
   // Insert schemas
   export const insertUserSchema = createInsertSchema(users).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  });
+
+  export const insertSettingsSchema = createInsertSchema(settings).omit({
     id: true,
     createdAt: true,
     updatedAt: true,
@@ -162,6 +191,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   export type InsertOrder = z.infer<typeof insertOrderSchema>;
   export type OrderItem = typeof orderItems.$inferSelect;
   export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+  export type Settings = typeof settings.$inferSelect;
+  export type InsertSettings = z.infer<typeof insertSettingsSchema>;
   
   // Extended types with relations
   export type ProductWithCategory = Product & { category: Category };

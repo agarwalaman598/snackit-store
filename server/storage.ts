@@ -1,9 +1,9 @@
 import {
-  users, categories, products, orders, orderItems,
+  users, categories, products, orders, orderItems, settings,
   type User, type UpsertUser, type Category,
   type Product, type InsertProduct, type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem, type ProductWithCategory,
-  type OrderWithItems
+  type OrderWithItems, type Settings, type InsertSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
@@ -102,6 +102,36 @@ export class DatabaseStorage {
   async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
     const [order] = await db.update(orders).set({ orderStatus: status, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
     return order;
+  }
+
+  async updateOrderPickupMessage(id: string, pickupMessage: string | null): Promise<Order | undefined> {
+    const [order] = await db
+      .update(orders)
+      .set({ pickupMessage, updatedAt: new Date() })
+      .where(eq(orders.id, id))
+      .returning();
+    return order;
+  }
+
+  // SETTINGS METHODS
+  async getSettings(): Promise<Settings> {
+    const row = await db.query.settings.findFirst({});
+    if (row) return row;
+    const [created] = await db
+      .insert(settings)
+      .values({ id: 'default' } as any)
+      .onConflictDoNothing()
+      .returning();
+    return created || (await db.query.settings.findFirst({}))!;
+  }
+
+  async updateSettings(data: Partial<InsertSettings>): Promise<Settings> {
+    const [row] = await db
+      .update(settings)
+      .set({ ...data, updatedAt: new Date() } as any)
+      .where(eq(settings.id, 'default'))
+      .returning();
+    return row;
   }
 }
 

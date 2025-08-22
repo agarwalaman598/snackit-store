@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -33,14 +33,22 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
   const { items, totalAmount, clearCart } = useCart();
   const { toast } = useToast();
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 10000 });
 
   const [step, setStep] = useState<"details" | "upi">("details");
   const [formData, setFormData] = useState({
-    hostelBlock: "KP 25A", // Default to the only option
+    hostelBlock: "KP 25A",
     roomNumber: "",
     phoneNumber: "",
     paymentMethod: "cash",
+    paymentNote: "",
   });
+
+  const paymentAvailability = (() => {
+    const allowCash = items.every((i) => (i as any).allowCash !== false);
+    const allowUpi = items.every((i) => (i as any).allowUpi !== false);
+    return { allowCash, allowUpi };
+  })();
 
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
@@ -66,6 +74,11 @@ export default function CheckoutModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (settings && (settings as any).acceptingOrders === false) {
+      toast({ title: "Orders Paused", description: "We are not accepting new orders right now.", variant: "destructive" });
+      return;
+    }
 
     if (!formData.roomNumber || !formData.phoneNumber) {
       toast({
@@ -95,6 +108,7 @@ export default function CheckoutModal({
       },
       paymentMethod: formData.paymentMethod,
       phoneNumber: formData.phoneNumber,
+      paymentNote: formData.paymentNote || undefined,
     };
 
     createOrderMutation.mutate(orderData);
@@ -123,6 +137,7 @@ export default function CheckoutModal({
                 <span className="text-gray-900">Total:</span>
                 <span className="text-orange-600">₹{totalAmount}</span>
               </div>
+              
             </div>
 
             <div>
@@ -172,7 +187,7 @@ export default function CheckoutModal({
             <div>
               <h3 className="font-bold text-lg text-gray-900 mb-3">Payment Method</h3>
               <div className="space-y-3">
-                <label className="flex items-center space-x-3 cursor-pointer">
+                <label className={`flex items-center space-x-3 ${!paymentAvailability.allowCash ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="radio"
                     name="paymentMethod"
@@ -180,10 +195,11 @@ export default function CheckoutModal({
                     checked={formData.paymentMethod === "cash"}
                     onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                     className="text-orange-500 focus:ring-orange-500"
+                    disabled={!paymentAvailability.allowCash}
                   />
-                  <span className="text-gray-700">Cash on Delivery</span>
+                  <span className="text-gray-700">Cash on Pickup</span>
                 </label>
-                <label className="flex items-center space-x-3 cursor-pointer">
+                <label className={`flex items-center space-x-3 ${!paymentAvailability.allowUpi ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="radio"
                     name="paymentMethod"
@@ -191,10 +207,22 @@ export default function CheckoutModal({
                     checked={formData.paymentMethod === "upi"}
                     onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                     className="text-orange-500 focus:ring-orange-500"
+                    disabled={!paymentAvailability.allowUpi}
                   />
                   <span className="text-gray-700">UPI Payment</span>
                 </label>
+                
               </div>
+            </div>
+
+            <div>
+              <h3 className="font-bold text-lg text-gray-900 mb-3">Optional Payment Note</h3>
+              <Input
+                placeholder="UPI/Transaction ID or note (optional)"
+                value={formData.paymentNote}
+                onChange={(e) => setFormData({ ...formData, paymentNote: e.target.value })}
+                className="border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+              />
             </div>
 
             <div className="flex space-x-4">
@@ -221,14 +249,14 @@ export default function CheckoutModal({
               <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-xl">
                 <div className="w-40 h-40 bg-white mx-auto rounded-xl flex items-center justify-center mb-4 p-2 shadow-lg">
                   <img
-                    src="/my_qr.jpg"
+                    src={(settings as any)?.upiQrUrl || "/my_qr.jpg"}
                     alt="UPI QR Code"
                     className="w-full h-full object-contain"
                   />
                 </div>
                 <p className="font-black text-2xl text-orange-600">₹{totalAmount}</p>
                 <p className="text-sm text-gray-600 mt-1">
-                  UPI ID: agarwalaman598@slc
+                  UPI ID: {(settings as any)?.upiId || 'agarwalaman598@slc'}
                 </p>
               </div>
             </div>
