@@ -37,12 +37,17 @@ export class DatabaseStorage {
     return category;
   }
 
-  async deleteCategory(id: string): Promise<boolean> {
-    // Prevent deleting a category that has products associated with it.
-    const linked = await db.query.products.findFirst({ where: eq(products.categoryId, id) });
-    if (linked) throw new Error('Cannot delete category with products. Reassign or delete products first.');
+  async deleteCategory(id: string): Promise<{ deleted: boolean; linked?: { id: string; name: string }[] }> {
+    // Only treat active products as blocking — allow deleting a category when all products are inactive (soft-deleted)
+    const linked = await db.query.products.findMany({
+      where: and(eq(products.categoryId, id), eq(products.isActive, true)),
+      columns: { id: true, name: true },
+    });
+    if (linked.length > 0) {
+      return { deleted: false, linked: linked.map(p => ({ id: p.id, name: p.name })) };
+    }
     const deleted = await db.delete(categories).where(eq(categories.id, id)).returning();
-    return deleted.length > 0;
+    return { deleted: deleted.length > 0 };
   }
 
   // PRODUCT METHODS

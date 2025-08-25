@@ -172,11 +172,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: delete category
   app.delete('/api/admin/categories/:id', isAdmin, async (req, res) => {
     try {
-      const success = await storage.deleteCategory(req.params.id);
-      if (success) return res.status(200).json({ message: 'Category deleted' });
+      const result = await storage.deleteCategory(req.params.id);
+      if (result.deleted) return res.status(200).json({ message: 'Category deleted' });
+      if (result.linked && result.linked.length > 0) return res.status(400).json({ message: 'Cannot delete category with active products. Reassign or delete products first.', linked: result.linked });
       return res.status(404).json({ message: 'Category not found' });
     } catch (err: any) {
-      return res.status(400).json({ message: err?.message ?? 'Failed to delete category' });
+      return res.status(500).json({ message: err?.message ?? 'Failed to delete category' });
     }
   });
 
