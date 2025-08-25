@@ -77,6 +77,14 @@ export class DatabaseStorage {
       orderBy: [asc(products.name)],
     });
   }
+
+  // Return all products regardless of isActive (for admin use)
+  async getAllProducts(): Promise<ProductWithCategory[]> {
+    return await db.query.products.findMany({
+      with: { category: true },
+      orderBy: [asc(products.name)],
+    });
+  }
   async getProduct(id: string): Promise<ProductWithCategory | undefined> {
     return await db.query.products.findFirst({
       where: eq(products.id, id),

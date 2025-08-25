@@ -141,6 +141,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(201).json(product);
   });
 
+  // Admin debug: list all products including inactive
+  app.get('/api/admin/products-all', isAdmin, async (req, res) => {
+    const products = await storage.getAllProducts();
+    res.json(products);
+  });
+
   // Admin: create category
   app.post('/api/admin/categories', isAdmin, async (req, res) => {
     try {
