@@ -38,33 +38,34 @@ export class DatabaseStorage {
   }
 
   async deleteCategory(id: string): Promise<{ deleted: boolean; movedCount?: number; movedTo?: string; moved?: { id: string; name: string }[] }> {
+    // Prevent hard delete of uncategorized
+    const uncategorized = await db.query.categories.findFirst({ where: eq(categories.slug, 'uncategorized') });
+    if (uncategorized && uncategorized.id === id) {
+      throw new Error('Cannot delete uncategorized category');
+    }
     // Find any products referencing this category (active or inactive)
     const linked = await db.query.products.findMany({
       where: eq(products.categoryId, id),
       columns: { id: true, name: true },
     });
-
     let movedToId: string | undefined = undefined;
     let movedCount = 0;
-
     if (linked.length > 0) {
       // Ensure an 'uncategorized' category exists to receive reassigned products
-      let uncat = await db.query.categories.findFirst({ where: eq(categories.slug, 'uncategorized') });
+      let uncat = uncategorized;
       if (!uncat) {
         const slug = 'uncategorized';
         const [created] = await db.insert(categories).values({ name: 'Uncategorized', icon: 'fas fa-folder-open', slug }).returning();
         uncat = created;
       }
       movedToId = uncat.id;
-
       // Reassign products in a transaction to ensure consistency
       await db.transaction(async (tx) => {
         await tx.update(products).set({ categoryId: movedToId, updatedAt: new Date() }).where(eq(products.categoryId, id));
       });
-
       movedCount = linked.length;
     }
-
+    // Hard delete the category
     const deleted = await db.delete(categories).where(eq(categories.id, id)).returning();
     return { deleted: deleted.length > 0, movedCount: movedCount || undefined, movedTo: movedToId, moved: movedCount > 0 ? linked.map(p => ({ id: p.id, name: p.name })) : undefined };
   }
@@ -100,8 +101,9 @@ export class DatabaseStorage {
     return product;
   }
   async deleteProduct(id: string): Promise<boolean> {
-    const updated = await db.update(products).set({ isActive: false }).where(eq(products.id, id)).returning({ id: products.id });
-    return updated.length > 0;
+  // Hard delete the product
+  const deleted = await db.delete(products).where(eq(products.id, id)).returning({ id: products.id });
+  return deleted.length > 0;
   }
 
   // ORDER METHODS

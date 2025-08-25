@@ -22,8 +22,10 @@ app.get('/api/test-alive', (_req, res) => res.json({ alive: true, time: new Date
   });
 
   app.get('/api/categories', async (req, res) => {
-    const categories = await storage.getCategories();
-    res.json(categories);
+  let categories = await storage.getCategories();
+  // Hide 'uncategorized' from user-facing list
+  categories = categories.filter(cat => cat.slug !== 'uncategorized');
+  res.json(categories);
   });
 
   app.get('/api/products', async (req, res) => {
@@ -182,10 +184,13 @@ app.get('/api/test-alive', (_req, res) => res.json({ alive: true, time: new Date
   // Admin: delete category
   app.delete('/api/admin/categories/:id', isAdmin, async (req, res) => {
     try {
-  const result = await storage.deleteCategory(req.params.id);
-  if (result.deleted) return res.status(200).json({ message: 'Category deleted', movedCount: result.movedCount ?? 0, movedTo: result.movedTo ?? null, moved: result.moved ?? [] });
-  return res.status(404).json({ message: 'Category not found' });
+      const result = await storage.deleteCategory(req.params.id);
+      if (result.deleted) return res.status(200).json({ message: 'Category deleted', movedCount: result.movedCount ?? 0, movedTo: result.movedTo ?? null, moved: result.moved ?? [] });
+      return res.status(404).json({ message: 'Category not found' });
     } catch (err: any) {
+      if (err?.message && err.message.includes('uncategorized')) {
+        return res.status(400).json({ message: 'Cannot delete uncategorized category' });
+      }
       return res.status(500).json({ message: err?.message ?? 'Failed to delete category' });
     }
   });
