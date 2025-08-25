@@ -38,9 +38,9 @@ export class DatabaseStorage {
   }
 
   async deleteCategory(id: string): Promise<{ deleted: boolean; linked?: { id: string; name: string }[] }> {
-    // Only treat active products as blocking — allow deleting a category when all products are inactive (soft-deleted)
+    // Do not attempt deletion if any product (active or inactive) references this category
     const linked = await db.query.products.findMany({
-      where: and(eq(products.categoryId, id), eq(products.isActive, true)),
+      where: eq(products.categoryId, id),
       columns: { id: true, name: true },
     });
     if (linked.length > 0) {
