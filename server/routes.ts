@@ -5,10 +5,11 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import { insertProductSchema, insertSettingsSchema, type InsertOrderItem, type InsertOrder } from "@shared/schema";
 
-// TEMP TEST ROUTE
-app.get('/api/test-alive', (_req, res) => res.json({ alive: true, time: new Date().toISOString() }));
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // TEMP TEST ROUTE
+app.get('/api/test-alive', (_req, res) => res.json({ alive: true, time: new Date().toISOString() }));
   await setupAuth(app);
 
   // --- Public Routes ---
