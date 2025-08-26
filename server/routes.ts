@@ -9,7 +9,7 @@ import { insertProductSchema, insertSettingsSchema, type InsertOrderItem, type I
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route for Render
-  app.get('/', (_req, res) => res.send('OK'));
+  app.get('/healthz', (_req, res) => res.send('OK'));
   await setupAuth(app);
 
   // --- Public Routes ---
