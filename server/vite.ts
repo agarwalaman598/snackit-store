@@ -71,10 +71,12 @@ export function serveStatic(app: Express) {
   // prefer server/public (copied build) but fall back to client/dist if present
   const serverDist = path.resolve(import.meta.dirname, "public");
   const clientDist = path.resolve(import.meta.dirname, "..", "client", "dist");
+  const rootDist = path.resolve(import.meta.dirname, "..", "dist", "public");
   let distPath = serverDist;
 
-  if (!fs.existsSync(distPath) && fs.existsSync(clientDist)) {
-    distPath = clientDist;
+  if (!fs.existsSync(distPath)) {
+    if (fs.existsSync(clientDist)) distPath = clientDist;
+    else if (fs.existsSync(rootDist)) distPath = rootDist;
   }
 
   if (!fs.existsSync(distPath)) {
