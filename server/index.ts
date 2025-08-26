@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config(); // This line loads your .env file
 
 import express from "express";
+import compression from 'compression';
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
@@ -22,6 +23,8 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+// enable gzip compression for responses
+app.use(compression());
 
 (async () => {
   const server = await registerRoutes(app);
