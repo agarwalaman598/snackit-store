@@ -8,9 +8,9 @@ import { insertProductSchema, insertSettingsSchema, type InsertOrderItem, type I
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // TEMP TEST ROUTE
+  // Health check route for Render
+  app.get('/', (_req, res) => res.send('OK'));
   await setupAuth(app);
-app.get('/api/test-alive', (_req, res) => res.json({ alive: true, time: new Date().toISOString() }));
 
   // --- Public Routes ---
   app.get('/api/auth/user', (req, res) => {
