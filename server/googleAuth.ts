@@ -7,11 +7,11 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
-}
-
-const ALLOWED_DOMAIN = "kiit.ac.in";
+// Allow configuration of allowed email domains via ALLOWED_EMAIL_DOMAINS
+// Fallback to kiit.ac.in if not provided.
+const ALLOWED_DOMAIN = process.env.ALLOWED_EMAIL_DOMAINS
+  ? process.env.ALLOWED_EMAIL_DOMAINS.split(",")[0]
+  : "kiit.ac.in";
 
 const getOidcConfig = memoize(
   async () => {
@@ -99,18 +99,17 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  for (const domain of process.env.REPLIT_DOMAINS!.split(",")) {
-    const strategy = new Strategy(
-      {
-        name: `googleauth:${domain}`,
-        config,
-        scope: "openid email profile",
-        callbackURL: `https://${domain}/api/callback`,
-      },
-      verify,
-    );
-    passport.use(strategy);
-  }
+  // Configure a single strategy using the primary allowed domain.
+  const strategy = new Strategy(
+    {
+      name: `googleauth:${ALLOWED_DOMAIN}`,
+      config,
+      scope: "openid email profile",
+      callbackURL: `https://${ALLOWED_DOMAIN}/api/callback`,
+    },
+    verify,
+  );
+  passport.use(strategy);
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
