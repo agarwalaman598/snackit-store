@@ -1,5 +1,6 @@
 # 🍿 SnackIt 🍿
 
+**Live Demo:** [**https://snackit-store-kiit.onrender.com/**](https://snackit-store-kiit.onrender.com/)
 SnackIt is a full-stack web application that allows users to order their favorite snacks with ease\! 🚀
 
 ## ✨ Features
