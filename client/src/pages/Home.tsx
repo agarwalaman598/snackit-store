@@ -126,7 +126,7 @@ export default function Home() {
       <SuccessModal isOpen={successOpen} onClose={() => setSuccessOpen(false)} />
 
       <footer className="text-center py-6 text-xs text-gray-500">
-        <span className="tracking-wide">© {new Date().getFullYear()} Snack Attax</span>
+  <span className="tracking-wide">© {new Date().getFullYear()} SnackIt</span>
       </footer>
       <LoginModal
         isOpen={loginModalOpen}

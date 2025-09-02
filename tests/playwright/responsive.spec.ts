@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 
 test('home and checkout are responsive across viewports', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveTitle(/Snack Attax/i);
+  await expect(page).toHaveTitle(/SnackIt/i);
 
   // capture home hero
   await page.locator('section').first().screenshot({ path: `pw-hero-${test.info().project.name}.png` });

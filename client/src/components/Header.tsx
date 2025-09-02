@@ -44,11 +44,9 @@ export default function Header({
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3" data-testid="logo">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
-              <i className="fas fa-cookie-bite text-white text-xl"></i>
-            </div>
+            <img src="/logo.svg" alt="SnackIt" className="w-10 h-10 object-cover rounded-xl shadow-lg" />
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight gradient-text">Snack Attax</h1>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight gradient-text">SnackIt</h1>
               <p className="text-xs md:text-sm text-gray-600 font-medium">Midnight Crunchy Delights</p>
             </div>
           </div>
